@@ -13,7 +13,7 @@
 
 # Needs to be defined before including Makefile.common to auto-generate targets
 DOCKER_ARCHS ?= amd64
-DOCKER_IMAGE_NAME ?= ghactions-exporter
+DOCKER_IMAGE_NAME ?= github_actions_exporter
 
 all:: vet checkmetrics common-all
 
