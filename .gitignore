@@ -1,5 +1,6 @@
 github_actions_exporter
 *.env
+*.tar.gz
 
 # Binaries for programs and plugins
 *.exe
