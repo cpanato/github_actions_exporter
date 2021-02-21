@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -12,24 +13,30 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/google/go-github/v33/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	listenAddress = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
-	metricsPath   = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-	ghWebHookPath = kingpin.Flag("web.gh-webhook-path", "Path under which to expose metrics.").Default("/gh_event").String()
-	gitHubToken   = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
+	listenAddress  = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
+	metricsPath    = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+	ghWebHookPath  = kingpin.Flag("web.gh-webhook-path", "Path under which to expose metrics.").Default("/gh_event").String()
+	gitHubToken    = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
+	gitHubAPIToken = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Default("").String()
+	gitHubOrg      = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
+	gitHubUser     = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
 )
 
 // GHActionExporter struct to hold some information
 type GHActionExporter struct {
-	Logger log.Logger
+	GHClient *github.Client
+	Logger   log.Logger
 }
 
 func init() {
@@ -46,6 +53,11 @@ func main() {
 
 	level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
 	level.Info(logger).Log("build_context", version.BuildContext())
+
+	if err := validateFlags(*gitHubAPIToken, *gitHubToken, *gitHubOrg, *gitHubUser); err != nil {
+		level.Error(logger).Log("msg", "Missing configure flags", "err", err)
+		os.Exit(1)
+	}
 
 	gh := NewGHActionExporter(logger)
 
@@ -128,24 +140,33 @@ func parseUnixSocketAddress(address string) (string, string, error) {
 	return unixSocketPath, requestPath, nil
 }
 
-func validateFlags(token, org, repo string) error {
+func validateFlags(apiToken, token, org, user string) error {
 	if token == "" {
-		return errors.New("Please configure the GitHub Token")
+		return errors.New("Please configure the GitHub Webhook Token")
 	}
 
-	if org == "" {
-		return errors.New("Please configure the GitHub Organization")
+	if apiToken == "" {
+		return errors.New("Please configure the GitHub API Token")
 	}
 
-	if repo == "" {
-		return errors.New("Please configure the GitHub Repository")
+	if org == "" && user == "" {
+		fmt.Print(org, user)
+		return errors.New("Please configure the GitHub Organization or GitHub User ")
 	}
 
 	return nil
 }
 
 func NewGHActionExporter(logger log.Logger) *GHActionExporter {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: *gitHubAPIToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
 	return &GHActionExporter{
-		Logger: logger,
+		GHClient: client,
+		Logger:   logger,
 	}
 }

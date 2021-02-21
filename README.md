@@ -18,6 +18,12 @@ You need just to select the `Check Run` event and the set your secret (that you 
 
 ![gh_webook](./assets/gh_webhook.png)
 
+Also it collects the Action Billing metrics, for that you will need to setup a GitHub API Access Token
+
+When configuring for an organization Access tokens must have the `repo` or `admin:org` scope.
+When configuring for an user Access tokens must have the `user` scope.
+
+
 ### Prerequisites
 
 To run this project, you will need a [working Go environment](https://golang.org/doc/install).

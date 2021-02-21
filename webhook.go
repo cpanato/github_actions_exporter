@@ -56,6 +56,8 @@ func (c *GHActionExporter) handleGHWebHook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	go c.CollectActionBilling()
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 }
