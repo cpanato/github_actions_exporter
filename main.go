@@ -26,7 +26,7 @@ import (
 var (
 	listenAddress  = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
 	metricsPath    = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-	ghWebHookPath  = kingpin.Flag("web.gh-webhook-path", "Path under which to expose metrics.").Default("/gh_event").String()
+	ghWebHookPath  = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
 	gitHubToken    = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
 	gitHubAPIToken = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Default("").String()
 	gitHubOrg      = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()

@@ -16,6 +16,8 @@ in your GitHub repo.
 
 You need just to select the `Check Run` event and the set your secret (that you start your exporter, see below)
 
+The webhook will call `/gh_event` path on your endpoint by default. You can change this with the `--web.gh-webhook-path` option.
+
 ![gh_webook](./assets/gh_webhook.png)
 
 Also it collects the Action Billing metrics, for that you will need to setup a GitHub API Access Token
