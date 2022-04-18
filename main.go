@@ -8,14 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/go-kit/kit/log"
+	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/kit/log/level"
-	"github.com/google/go-github/v33/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
-	"golang.org/x/oauth2"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -52,7 +50,15 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	srv := NewServer(logger)
+	srv := server.NewServer(logger, server.ServerOpts{
+		WebhookPath:    *ghWebHookPath,
+		ListenAddress:  *listenAddress,
+		MetricsPath:    *metricsPath,
+		GitHubToken:    *gitHubToken,
+		GitHubAPIToken: *gitHubAPIToken,
+		GitHubUser:     *gitHubUser,
+		GitHubOrg:      *gitHubOrg,
+	})
 	go func() {
 		err := srv.Serve(context.Background())
 		if err != nil {
@@ -86,18 +92,4 @@ func validateFlags(apiToken, token, org, user string) error {
 	}
 
 	return nil
-}
-
-func NewGHActionExporter(logger log.Logger) *GHActionExporter {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: *gitHubAPIToken},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
-	return &GHActionExporter{
-		GHClient: client,
-		Logger:   logger,
-	}
 }

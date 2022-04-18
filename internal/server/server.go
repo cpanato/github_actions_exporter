@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -10,37 +10,44 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/google/go-github/v33/github"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 )
 
-// GHActionExporter struct to hold some information
-type GHActionExporter struct {
-	GHClient *github.Client
-	Logger   log.Logger
+type ServerOpts struct {
+	MetricsPath   string
+	ListenAddress string
+	WebhookPath   string
+	// GitHub webhook token.
+	GitHubToken string
+	// GitHub API token.
+	GitHubAPIToken string
+	GitHubOrg      string
+	GitHubUser     string
 }
 
-type server struct {
+type Server struct {
 	logger   log.Logger
 	server   *http.Server
-	exporter *GHActionExporter
+	exporter *gHActionExporter
+	opts     ServerOpts
 }
 
-func NewServer(logger log.Logger) *server {
-	return &server{
+func NewServer(logger log.Logger, opts ServerOpts) *Server {
+	return &Server{
 		logger:   logger,
 		server:   &http.Server{},
-		exporter: NewGHActionExporter(logger),
+		exporter: NewGHActionExporter(logger, opts),
+		opts:     opts,
 	}
 }
 
-func (s *server) Serve(ctx context.Context) error {
-	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc(*ghWebHookPath, s.exporter.handleGHWebHook)
+func (s *Server) Serve(ctx context.Context) error {
+	http.Handle(s.opts.MetricsPath, promhttp.Handler())
+	http.HandleFunc(s.opts.WebhookPath, s.exporter.handleGHWebHook)
 	http.HandleFunc("/", s.handleRoot)
 
-	listener, err := getListener(*listenAddress, s.logger)
+	listener, err := getListener(s.opts.ListenAddress, s.logger)
 	if err != nil {
 		return fmt.Errorf("get listener: %v", err)
 	}
@@ -53,17 +60,17 @@ func (s *server) Serve(ctx context.Context) error {
 	return nil
 }
 
-func (s *server) Shutdown(ctx context.Context) error {
+func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-func (s *server) handleRoot(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte(`<html>
 		<head><title>GitHub Actions Exporter</title></head>
 		<body>
 		<h1>GitHub Actions Exporter</h1>
 		<p> ` + version.Print("ghactions_exporter") + `  </p>
-		<p><a href='` + *metricsPath + `'>Metrics</a></p>
+		<p><a href='` + s.opts.MetricsPath + `'>Metrics</a></p>
 		</body>
 		</html>
 	`))
