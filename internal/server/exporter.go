@@ -21,6 +21,14 @@ import (
 )
 
 var (
+	WorkflowHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "workflow_job_seconds",
+		Help:    "Time that a workflow job took to reach a given state.",
+		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
+	},
+		[]string{"org", "repo", "state", "runner_group"},
+	)
+
 	HistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_execution_time_seconds",
 		Help:    "Time that a workflow took to run.",
@@ -97,6 +105,23 @@ func CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
 	executionTime := endTime.Sub(startTime.Time).Seconds()
 
 	HistogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
+}
+
+func CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
+	if event.GetAction() == "queued" {
+		return
+	}
+
+	if event.GetAction() == "in_progress" {
+		repo := event.GetRepo().GetName()
+		org := event.GetRepo().GetOwner().GetLogin()
+		lastStep := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1]
+		queuedSeconds := lastStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
+		runnerGroup := event.WorkflowJob.GetRunnerGroupName()
+
+		WorkflowHistogramVec.WithLabelValues(repo, org, "queued", runnerGroup).
+			Observe(queuedSeconds)
+	}
 }
 
 // GHActionExporter struct to hold some information
@@ -190,7 +215,8 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		go CollectWorkflowRun(event)
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName())
+		level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID())
+		go CollectWorkflowJobEvent(event)
 	default:
 		level.Info(c.Logger).Log("msg", "not implemented")
 		w.WriteHeader(http.StatusNotImplemented)

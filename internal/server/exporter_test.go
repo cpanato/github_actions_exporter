@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/kit/log"
@@ -127,7 +129,6 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 			},
 		},
 	}
-
 	req := testValidRequest(t, "workflow_job", event)
 
 	// When
@@ -136,7 +137,92 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	assert.Equal(t, 0, testutil.CollectAndCount(server.HistogramVec))
+	assert.Equal(t, 0, testutil.CollectAndCount(server.WorkflowHistogramVec))
+}
+
+func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
+
+	// Given
+	subject := server.GHActionExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.ServerOpts{
+			GitHubToken: webhookSecret,
+		},
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	queuedDuration := 10
+	jobStartedAt := time.Unix(1650308740, 0)
+	stepStartedAt := jobStartedAt.Add(time.Duration(queuedDuration) * time.Second)
+	runnerGroupName := "runner-group"
+
+	event := github.WorkflowJobEvent{
+		Action: github.String("in_progress"),
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		WorkflowJob: &github.WorkflowJob{
+			StartedAt: &github.Timestamp{Time: jobStartedAt},
+			Steps: []*github.TaskStep{
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt},
+				},
+			},
+			RunnerGroupName: &runnerGroupName,
+		},
+	}
+	req := testValidRequest(t, "workflow_job", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+
+	expected := `# HELP workflow_job_seconds Time that a workflow job took to reach a given state.
+	# TYPE workflow_job_seconds histogram
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="1"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="1.4"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="1.9599999999999997"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="2.7439999999999993"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="3.841599999999999"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="5.378239999999998"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="7.529535999999997"} 0
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="10.541350399999995"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="14.757890559999993"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="20.66104678399999"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="28.925465497599983"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="40.495651696639975"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="56.69391237529596"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="79.37147732541433"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="111.12006825558007"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="155.5680955578121"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="217.79533378093691"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="304.91346729331167"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="426.8788542106363"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="597.6303958948907"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="836.682554252847"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="1171.3555759539856"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="1639.8978063355798"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="2295.856928869812"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="3214.1997004177365"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="4499.87958058483"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="6299.831412818762"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="8819.763977946266"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="12347.669569124771"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="17286.73739677468"} 1
+	workflow_job_seconds_bucket{org="some-repo",repo="someone",runner_group="runner-group",state="queued",le="+Inf"} 1
+	workflow_job_seconds_sum{org="some-repo",repo="someone",runner_group="runner-group",state="queued"} 10
+	workflow_job_seconds_count{org="some-repo",repo="someone",runner_group="runner-group",state="queued"} 1
+	
+`
+	err := testutil.CollectAndCompare(server.WorkflowHistogramVec, strings.NewReader(expected))
+	require.NoError(t, err)
 }
 
 func testValidRequest(t *testing.T, event string, payload interface{}) *http.Request {
