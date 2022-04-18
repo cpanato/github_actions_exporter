@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	WorkflowHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	workflowJobHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_job_seconds",
 		Help:    "Time that a workflow job took to reach a given state.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
@@ -29,7 +29,7 @@ var (
 		[]string{"org", "repo", "state", "runner_group"},
 	)
 
-	HistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	histogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_execution_time_seconds",
 		Help:    "Time that a workflow took to run.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
@@ -82,7 +82,8 @@ var (
 
 func init() {
 	//Register metrics with prometheus
-	prometheus.MustRegister(HistogramVec)
+	prometheus.MustRegister(workflowJobHistogramVec)
+	prometheus.MustRegister(histogramVec)
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
@@ -91,44 +92,12 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
 }
 
-// CollectWorkflowRun collect the workflow execution run metric
-func CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
-	if checkRunEvent.GetCheckRun().GetStatus() != "completed" {
-		return
-	}
-
-	workflowName := checkRunEvent.GetCheckRun().GetName()
-	repo := checkRunEvent.GetRepo().GetName()
-	org := checkRunEvent.GetRepo().GetOwner().GetLogin()
-	endTime := checkRunEvent.GetCheckRun().GetCompletedAt()
-	startTime := checkRunEvent.GetCheckRun().GetStartedAt()
-	executionTime := endTime.Sub(startTime.Time).Seconds()
-
-	HistogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
-}
-
-func CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
-	if event.GetAction() == "queued" {
-		return
-	}
-
-	if event.GetAction() == "in_progress" {
-		repo := event.GetRepo().GetName()
-		org := event.GetRepo().GetOwner().GetLogin()
-		lastStep := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1]
-		queuedSeconds := lastStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
-		runnerGroup := event.WorkflowJob.GetRunnerGroupName()
-
-		WorkflowHistogramVec.WithLabelValues(repo, org, "queued", runnerGroup).
-			Observe(queuedSeconds)
-	}
-}
-
 // GHActionExporter struct to hold some information
 type GHActionExporter struct {
-	GHClient *github.Client
-	Logger   log.Logger
-	Opts     ServerOpts
+	GHClient    *github.Client
+	Logger      log.Logger
+	Opts        ServerOpts
+	JobObserver WorkflowJobObserver
 }
 
 func NewGHActionExporter(logger log.Logger, opts ServerOpts) *GHActionExporter {
@@ -140,9 +109,10 @@ func NewGHActionExporter(logger log.Logger, opts ServerOpts) *GHActionExporter {
 	client := github.NewClient(tc)
 
 	return &GHActionExporter{
-		GHClient: client,
-		Logger:   logger,
-		Opts:     opts,
+		GHClient:    client,
+		Logger:      logger,
+		Opts:        opts,
+		JobObserver: &JobObserver{},
 	}
 }
 
@@ -212,11 +182,11 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 	case "check_run":
 		event := model.CheckRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		level.Info(c.Logger).Log("msg", "got check_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflowName", event.GetCheckRun().GetName())
-		go CollectWorkflowRun(event)
+		go c.CollectWorkflowRun(event)
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID())
-		go CollectWorkflowJobEvent(event)
+		go c.CollectWorkflowJobEvent(event)
 	default:
 		level.Info(c.Logger).Log("msg", "not implemented")
 		w.WriteHeader(http.StatusNotImplemented)
@@ -227,6 +197,38 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
+}
+
+// CollectWorkflowRun collect the workflow execution run metric
+func (c *GHActionExporter) CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
+	if checkRunEvent.GetCheckRun().GetStatus() != "completed" {
+		return
+	}
+
+	workflowName := checkRunEvent.GetCheckRun().GetName()
+	repo := checkRunEvent.GetRepo().GetName()
+	org := checkRunEvent.GetRepo().GetOwner().GetLogin()
+	endTime := checkRunEvent.GetCheckRun().GetCompletedAt()
+	startTime := checkRunEvent.GetCheckRun().GetStartedAt()
+	executionTime := endTime.Sub(startTime.Time).Seconds()
+
+	histogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
+}
+
+func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
+	if event.GetAction() == "queued" {
+		return
+	}
+
+	if event.GetAction() == "in_progress" {
+		repo := event.GetRepo().GetName()
+		org := event.GetRepo().GetOwner().GetLogin()
+		lastStep := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1]
+		queuedSeconds := lastStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
+		runnerGroup := event.WorkflowJob.GetRunnerGroupName()
+
+		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, queuedSeconds)
+	}
 }
 
 // validateSignature validate the incoming github event.
