@@ -34,18 +34,28 @@ type Server struct {
 }
 
 func NewServer(logger log.Logger, opts ServerOpts) *Server {
-	return &Server{
+	mux := http.NewServeMux()
+
+	httpServer := &http.Server{
+		Handler: mux,
+	}
+
+	exporter := NewGHActionExporter(logger, opts)
+	server := &Server{
 		logger:   logger,
-		server:   &http.Server{},
-		exporter: NewGHActionExporter(logger, opts),
+		server:   httpServer,
+		exporter: exporter,
 		opts:     opts,
 	}
+
+	mux.Handle(opts.MetricsPath, promhttp.Handler())
+	mux.HandleFunc(opts.WebhookPath, server.exporter.HandleGHWebHook)
+	mux.HandleFunc("/", server.handleRoot)
+
+	return server
 }
 
 func (s *Server) Serve(ctx context.Context) error {
-	http.Handle(s.opts.MetricsPath, promhttp.Handler())
-	http.HandleFunc(s.opts.WebhookPath, s.exporter.HandleGHWebHook)
-	http.HandleFunc("/", s.handleRoot)
 
 	listener, err := getListener(s.opts.ListenAddress, s.logger)
 	if err != nil {
@@ -54,6 +64,7 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter has successfully started")
 	err = s.server.Serve(listener)
+
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server closed: %v", err)
 	}
