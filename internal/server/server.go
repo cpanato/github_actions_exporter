@@ -29,7 +29,7 @@ type ServerOpts struct {
 type Server struct {
 	logger   log.Logger
 	server   *http.Server
-	exporter *gHActionExporter
+	exporter *GHActionExporter
 	opts     ServerOpts
 }
 
@@ -44,7 +44,7 @@ func NewServer(logger log.Logger, opts ServerOpts) *Server {
 
 func (s *Server) Serve(ctx context.Context) error {
 	http.Handle(s.opts.MetricsPath, promhttp.Handler())
-	http.HandleFunc(s.opts.WebhookPath, s.exporter.handleGHWebHook)
+	http.HandleFunc(s.opts.WebhookPath, s.exporter.HandleGHWebHook)
 	http.HandleFunc("/", s.handleRoot)
 
 	listener, err := getListener(s.opts.ListenAddress, s.logger)

@@ -100,13 +100,13 @@ func CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
 }
 
 // GHActionExporter struct to hold some information
-type gHActionExporter struct {
+type GHActionExporter struct {
 	GHClient *github.Client
 	Logger   log.Logger
 	Opts     ServerOpts
 }
 
-func NewGHActionExporter(logger log.Logger, opts ServerOpts) *gHActionExporter {
+func NewGHActionExporter(logger log.Logger, opts ServerOpts) *GHActionExporter {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
@@ -114,7 +114,7 @@ func NewGHActionExporter(logger log.Logger, opts ServerOpts) *gHActionExporter {
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	return &gHActionExporter{
+	return &GHActionExporter{
 		GHClient: client,
 		Logger:   logger,
 		Opts:     opts,
@@ -122,7 +122,7 @@ func NewGHActionExporter(logger log.Logger, opts ServerOpts) *gHActionExporter {
 }
 
 // CollectActionBilling collect the action billing.
-func (c *gHActionExporter) CollectActionBilling() {
+func (c *GHActionExporter) CollectActionBilling() {
 	if c.Opts.GitHubOrg != "" {
 		actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingOrg(context.TODO(), c.Opts.GitHubOrg)
 		if err != nil {
@@ -155,7 +155,7 @@ func (c *gHActionExporter) CollectActionBilling() {
 }
 
 // handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
-func (c *gHActionExporter) handleGHWebHook(w http.ResponseWriter, r *http.Request) {
+func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
 	buf, _ := ioutil.ReadAll(r.Body)
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
