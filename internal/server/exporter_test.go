@@ -16,7 +16,6 @@ import (
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-github/v43/github"
-	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,8 +79,7 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 			GitHubToken: webhookSecret,
 		},
 	}
-
-	req := testValidRequest(t, "ping", github.PingEvent{})
+	req := testWebhookRequest(t, "/anything", "ping", github.PingEvent{})
 
 	// When
 	res := httptest.NewRecorder()
@@ -101,8 +99,7 @@ func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
 			GitHubToken: webhookSecret,
 		},
 	}
-
-	req := testValidRequest(t, "check_run", github.CheckRun{})
+	req := testWebhookRequest(t, "/anything", "check_run", github.CheckRun{})
 
 	// When
 	res := httptest.NewRecorder()
@@ -115,11 +112,13 @@ func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
 
 	// Given
+	observer := &testJobObserver{}
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.ServerOpts{
 			GitHubToken: webhookSecret,
 		},
+		JobObserver: observer,
 	}
 	event := github.WorkflowJobEvent{
 		Action: github.String("queued"),
@@ -130,7 +129,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 			},
 		},
 	}
-	req := testValidRequest(t, "workflow_job", event)
+	req := testWebhookRequest(t, "/anything", "workflow_job", event)
 
 	// When
 	res := httptest.NewRecorder()
@@ -138,7 +137,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	assert.Equal(t, 0, testutil.CollectAndCount(server.WorkflowJobHistogramVec))
+	observer.assertNoObservation(5)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
@@ -178,7 +177,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 			RunnerGroupName: &runnerGroupName,
 		},
 	}
-	req := testValidRequest(t, "workflow_job", event)
+	req := testWebhookRequest(t, "/anything", "workflow_job", event)
 
 	// When
 	res := httptest.NewRecorder()
@@ -195,11 +194,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	assert.Equal(t, expectedDuration, observation.seconds)
 }
 
-func testValidRequest(t *testing.T, event string, payload interface{}) *http.Request {
+func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
 	b, err := json.Marshal(payload)
 	require.NoError(t, err)
 
-	req, err := http.NewRequest("POST", "/anything", bytes.NewReader(b))
+	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
 	require.NoError(t, err)
 
 	addValidSignatureHeader(t, req, b)
@@ -241,5 +240,13 @@ func (o *testJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGro
 		state:       state,
 		runnerGroup: runnerGroup,
 		seconds:     seconds,
+	}
+}
+
+func (o *testJobObserver) assertNoObservation(timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+	case <-o.observed:
+		o.t.Fatal("expected no observation but an observation occurred")
 	}
 }
