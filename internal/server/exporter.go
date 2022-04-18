@@ -15,7 +15,7 @@ import (
 	"github.com/cpanato/github_actions_exporter/model"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v43/github"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/oauth2"
 )

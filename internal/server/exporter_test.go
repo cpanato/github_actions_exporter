@@ -14,7 +14,7 @@ import (
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/kit/log"
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v43/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

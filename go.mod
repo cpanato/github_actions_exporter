@@ -4,8 +4,8 @@ go 1.15
 
 require (
 	github.com/go-kit/kit v0.10.0
-	github.com/google/go-cmp v0.5.1 // indirect
-	github.com/google/go-github/v33 v33.0.1-0.20210219143306-5c87615fe927
+	github.com/google/go-github/v33 v33.0.1-0.20210219143306-5c87615fe927 // indirect
+	github.com/google/go-github/v43 v43.0.0
 	github.com/prometheus/client_golang v1.8.0
 	github.com/prometheus/common v0.15.0
 	github.com/stretchr/objx v0.3.0 // indirect
