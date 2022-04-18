@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	histogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	HistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_execution_time_seconds",
 		Help:    "Time that a workflow took to run.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
@@ -74,7 +74,7 @@ var (
 
 func init() {
 	//Register metrics with prometheus
-	prometheus.MustRegister(histogramVec)
+	prometheus.MustRegister(HistogramVec)
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
@@ -96,7 +96,7 @@ func CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
 	startTime := checkRunEvent.GetCheckRun().GetStartedAt()
 	executionTime := endTime.Sub(startTime.Time).Seconds()
 
-	histogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
+	HistogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
 }
 
 // GHActionExporter struct to hold some information
@@ -188,6 +188,9 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		event := model.CheckRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		level.Info(c.Logger).Log("msg", "got check_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflowName", event.GetCheckRun().GetName())
 		go CollectWorkflowRun(event)
+	case "workflow_job":
+		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName())
 	default:
 		level.Info(c.Logger).Log("msg", "not implemented")
 		w.WriteHeader(http.StatusNotImplemented)

@@ -15,6 +15,7 @@ import (
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/kit/log"
 	"github.com/google/go-github/v43/github"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,6 +107,36 @@ func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+}
+
+func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
+
+	// Given
+	subject := server.GHActionExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.ServerOpts{
+			GitHubToken: webhookSecret,
+		},
+	}
+	event := github.WorkflowJobEvent{
+		Action: github.String("queued"),
+		Repo: &github.Repository{
+			Name: github.String("some-repo"),
+			Owner: &github.User{
+				Login: github.String("someone"),
+			},
+		},
+	}
+
+	req := testValidRequest(t, "workflow_job", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+	assert.Equal(t, 0, testutil.CollectAndCount(server.HistogramVec))
 }
 
 func testValidRequest(t *testing.T, event string, payload interface{}) *http.Request {
