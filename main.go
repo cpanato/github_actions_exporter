@@ -4,18 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v33/github"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
@@ -32,12 +28,6 @@ var (
 	gitHubOrg      = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
 	gitHubUser     = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
 )
-
-// GHActionExporter struct to hold some information
-type GHActionExporter struct {
-	GHClient *github.Client
-	Logger   log.Logger
-}
 
 func init() {
 	prometheus.MustRegister(version.NewCollector("ghactions_exporter"))
@@ -59,85 +49,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	gh := NewGHActionExporter(logger)
-
-	srv := http.Server{}
-
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	srv := NewServer(logger)
 	go func() {
-		level.Info(logger).Log("msg", fmt.Sprintf("Signal received: %v. Exiting...", <-signalChan))
-		err := srv.Close()
+		err := srv.Serve(context.Background())
 		if err != nil {
-			level.Error(logger).Log("msg", "Error occurred while closing the server", "err", err)
+			level.Error(logger).Log("msg", "Server closed", "err", err)
+		} else {
+			level.Info(logger).Log("msg", "Server closed")
 		}
-		os.Exit(0)
 	}()
 
-	http.Handle(*metricsPath, promhttp.Handler())
-	http.HandleFunc(*ghWebHookPath, gh.handleGHWebHook)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html>
-<head><title>GitHub Actions Exporter</title></head>
-<body>
-<h1>GitHub Actions Exporter</h1>
-<p> ` + version.Print("ghactions_exporter") + `  </p>
-<p><a href='` + *metricsPath + `'>Metrics</a></p>
-</body>
-</html>
-`))
-	})
-
-	listener, err := getListener(*listenAddress, logger)
+	level.Info(logger).Log("msg", fmt.Sprintf("Signal received: %v. Exiting...", <-signalChan))
+	err := srv.Shutdown(context.Background())
 	if err != nil {
-		level.Error(logger).Log("msg", "Could not create listener", "err", err)
+		level.Error(logger).Log("msg", "Error occurred while closing the server", "err", err)
 		os.Exit(1)
 	}
-
-	level.Info(logger).Log("msg", "GitHub Actions Prometheus Exporter has successfully started")
-	if err := srv.Serve(listener); err != nil {
-		level.Error(logger).Log("msg", "Error starting HTTP server", "err", err)
-		os.Exit(1)
-	}
-}
-
-func getListener(listenAddress string, logger log.Logger) (net.Listener, error) {
-	var listener net.Listener
-	var err error
-
-	if strings.HasPrefix(listenAddress, "unix:") {
-		path, _, pathError := parseUnixSocketAddress(listenAddress)
-		if pathError != nil {
-			return listener, fmt.Errorf("parsing unix domain socket listen address %s failed: %v", listenAddress, pathError)
-		}
-		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
-	} else {
-		listener, err = net.Listen("tcp", listenAddress)
-	}
-
-	if err != nil {
-		return listener, err
-	}
-
-	level.Info(logger).Log("msg", fmt.Sprintf("Listening on %s", listenAddress))
-	return listener, nil
-}
-
-func parseUnixSocketAddress(address string) (string, string, error) {
-	addressParts := strings.Split(address, ":")
-	addressPartsLength := len(addressParts)
-
-	if addressPartsLength > 3 || addressPartsLength < 1 {
-		return "", "", fmt.Errorf("address for unix domain socket has wrong format")
-	}
-
-	unixSocketPath := addressParts[1]
-	requestPath := ""
-	if addressPartsLength == 3 {
-		requestPath = addressParts[2]
-	}
-
-	return unixSocketPath, requestPath, nil
+	os.Exit(0)
 }
 
 func validateFlags(apiToken, token, org, user string) error {
