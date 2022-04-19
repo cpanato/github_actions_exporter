@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"strings"
 
@@ -227,14 +228,14 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 	if event.GetAction() == "in_progress" {
 		firstStep := event.WorkflowJob.Steps[0]
 		queuedSeconds := firstStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
-		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, queuedSeconds)
+		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
 	}
 
 	if event.GetAction() == "completed" {
 		firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
 		lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
 		jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
-		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, float64(jobSeconds))
+		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
 	}
 }
 

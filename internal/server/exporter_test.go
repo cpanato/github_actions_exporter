@@ -197,6 +197,63 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	}, 50*time.Millisecond)
 }
 
+func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
+
+	// Given
+	observer := NewTestJobObserver(t)
+	subject := server.GHActionExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.ServerOpts{
+			GitHubToken: webhookSecret,
+		},
+		JobObserver: observer,
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	expectedDuration := 10.0
+	jobStartedAt := time.Unix(1650308740, 0)
+	stepStartedAt := jobStartedAt.Add(-1 * time.Duration(expectedDuration) * time.Second)
+	runnerGroupName := "runner-group"
+
+	event := github.WorkflowJobEvent{
+		Action: github.String("in_progress"),
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		WorkflowJob: &github.WorkflowJob{
+			StartedAt: &github.Timestamp{Time: jobStartedAt},
+			Steps: []*github.TaskStep{
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt},
+				},
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
+				},
+			},
+			RunnerGroupName: &runnerGroupName,
+		},
+	}
+	req := testWebhookRequest(t, "/anything", "workflow_job", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+	observer.assetObservation(jobObservation{
+		org:         org,
+		repo:        repo,
+		state:       "queued",
+		runnerGroup: runnerGroupName,
+		seconds:     0,
+	}, 50*time.Millisecond)
+}
+
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.T) {
 
 	// Given
