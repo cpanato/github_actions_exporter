@@ -30,6 +30,13 @@ var (
 		[]string{"org", "repo", "state", "runner_group"},
 	)
 
+	workflowJobStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "workflow_job_status_count",
+		Help: "Count of the occurances of different workflow job states.",
+	},
+		[]string{"org", "repo", "status", "runner_group"},
+	)
+
 	workflowRunHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_execution_time_seconds",
 		Help:    "Time that a workflow took to run.",
@@ -84,6 +91,7 @@ var (
 func init() {
 	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
+	prometheus.MustRegister(workflowJobStatusCounter)
 	prometheus.MustRegister(workflowRunHistogramVec)
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
@@ -201,26 +209,34 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
-	if event.GetAction() == "queued" {
-		return
-	}
 
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
+	action := event.GetAction()
 
-	if event.GetAction() == "in_progress" {
+	var status string
+	switch action {
+	case "queued":
+		status = "queued"
+	case "in_progress":
+		status = "in_progress"
+
 		firstStep := event.WorkflowJob.Steps[0]
 		queuedSeconds := firstStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
 		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
+	case "completed":
+		status = event.GetWorkflowJob().GetConclusion()
+
+		if event.GetWorkflowJob().GetConclusion() != "skipped" {
+			firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
+			lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
+			jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
+			c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
+		}
 	}
 
-	if event.GetAction() == "completed" && event.GetWorkflowJob().GetConclusion() != "skipped" {
-		firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
-		lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
-		jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
-		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
-	}
+	c.JobObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
 }
 
 func (c *GHActionExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
