@@ -173,6 +173,9 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt},
 				},
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
+				},
 			},
 			RunnerGroupName: &runnerGroupName,
 		},

@@ -225,8 +225,8 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
 
 	if event.GetAction() == "in_progress" {
-		lastStep := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1]
-		queuedSeconds := lastStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
+		firstStep := event.WorkflowJob.Steps[0]
+		queuedSeconds := firstStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
 		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, queuedSeconds)
 	}
 
