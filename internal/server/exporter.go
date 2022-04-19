@@ -186,10 +186,10 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		go c.CollectWorkflowRun(event)
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID())
+		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID(), "action", event.GetAction())
 		go c.CollectWorkflowJobEvent(event)
 	default:
-		_ = level.Info(c.Logger).Log("msg", "not implemented")
+		_ = level.Info(c.Logger).Log("msg", "not implemented", "eventType", eventType)
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
