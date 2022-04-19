@@ -30,7 +30,7 @@ var (
 		[]string{"org", "repo", "state", "runner_group"},
 	)
 
-	histogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	workflowRunHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "workflow_execution_time_seconds",
 		Help:    "Time that a workflow took to run.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
@@ -84,7 +84,7 @@ var (
 func init() {
 	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
-	prometheus.MustRegister(histogramVec)
+	prometheus.MustRegister(workflowRunHistogramVec)
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
@@ -188,6 +188,10 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID(), "action", event.GetAction())
 		go c.CollectWorkflowJobEvent(event)
+	case "workflow_run":
+		event := model.WorkflowRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		level.Info(c.Logger).Log("msg", "got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
+		go c.CollectWorkflowRunEvent(event)
 	default:
 		_ = level.Info(c.Logger).Log("msg", "not implemented", "eventType", eventType)
 		w.WriteHeader(http.StatusNotImplemented)
@@ -213,7 +217,7 @@ func (c *GHActionExporter) CollectWorkflowRun(checkRunEvent *github.CheckRunEven
 	startTime := checkRunEvent.GetCheckRun().GetStartedAt()
 	executionTime := endTime.Sub(startTime.Time).Seconds()
 
-	histogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
+	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
 }
 
 func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
@@ -237,6 +241,18 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 		jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
 		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
 	}
+}
+
+func (c *GHActionExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
+	if event.GetAction() != "completed" {
+		return
+	}
+
+	repo := event.GetRepo().GetName()
+	org := event.GetRepo().GetOwner().GetLogin()
+	workflowName := event.GetWorkflow().GetName()
+	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
+	c.JobObserver.ObserveWorkflowRunDuration(org, repo, workflowName, float64(seconds))
 }
 
 // validateSignature validate the incoming github event.

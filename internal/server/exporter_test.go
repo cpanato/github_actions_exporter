@@ -348,6 +348,103 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 	observer.assertNoWorkflowJobObservation(1 * time.Second)
 }
 
+func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
+
+	// Given
+	observer := NewTestJobObserver(t)
+	subject := server.GHActionExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.Opts{
+			GitHubToken: webhookSecret,
+		},
+		JobObserver: observer,
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	workflowName := "myworkflow"
+	expectedRunDuration := 5.0
+	runStartTime := time.Unix(1650308740, 0)
+	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
+	event := github.WorkflowRunEvent{
+		Action: github.String("completed"),
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		Workflow: &github.Workflow{
+			Name: &workflowName,
+		},
+		WorkflowRun: &github.WorkflowRun{
+			Status:       github.String("completed"),
+			RunStartedAt: &github.Timestamp{Time: runStartTime},
+			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
+		},
+	}
+	req := testWebhookRequest(t, "/anything", "workflow_run", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+	observer.assetWorkflowRunObservation(workflowRunObservation{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		seconds:      expectedRunDuration,
+	}, 50*time.Millisecond)
+}
+
+func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
+
+	// Given
+	observer := NewTestJobObserver(t)
+	subject := server.GHActionExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.Opts{
+			GitHubToken: webhookSecret,
+		},
+		JobObserver: observer,
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	workflowName := "myworkflow"
+	expectedRunDuration := 5.0
+	runStartTime := time.Unix(1650308740, 0)
+	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
+	event := github.WorkflowRunEvent{
+		Action: github.String("not_a_completed_action"),
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		Workflow: &github.Workflow{
+			Name: &workflowName,
+		},
+		WorkflowRun: &github.WorkflowRun{
+			Status:       github.String("completed"),
+			RunStartedAt: &github.Timestamp{Time: runStartTime},
+			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
+		},
+	}
+	req := testWebhookRequest(t, "/anything", "workflow_run", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+	observer.assertNoWorkflowJobObservation(1 * time.Second)
+}
+
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
 	b, err := json.Marshal(payload)
 	require.NoError(t, err)
@@ -373,17 +470,24 @@ type workflowJobObservation struct {
 	seconds                       float64
 }
 
+type workflowRunObservation struct {
+	org, repo, workflowName string
+	seconds                 float64
+}
+
 var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
 
 type TestJobObserver struct {
 	t                   *testing.T
 	workFlowJobObserved chan workflowJobObservation
+	workflowRunObserved chan workflowRunObservation
 }
 
 func NewTestJobObserver(t *testing.T) *TestJobObserver {
 	return &TestJobObserver{
 		t:                   t,
 		workFlowJobObserved: make(chan workflowJobObservation, 1),
+		workflowRunObserved: make(chan workflowRunObservation, 1),
 	}
 }
 
@@ -394,6 +498,15 @@ func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGro
 		state:       state,
 		runnerGroup: runnerGroup,
 		seconds:     seconds,
+	}
+}
+
+func (o *TestJobObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
+	o.workflowRunObserved <- workflowRunObservation{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		seconds:      seconds,
 	}
 }
 
@@ -408,8 +521,17 @@ func (o *TestJobObserver) assertNoWorkflowJobObservation(timeout time.Duration) 
 func (o *TestJobObserver) assetWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
-		o.t.Fatal("expected no observation but none occurred")
+		o.t.Fatal("expected observation but none occurred")
 	case observed := <-o.workFlowJobObserved:
+		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestJobObserver) assetWorkflowRunObservation(expected workflowRunObservation, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected observation but none occurred")
+	case observed := <-o.workflowRunObserved:
 		assert.Equal(o.t, expected, observed)
 	}
 }
