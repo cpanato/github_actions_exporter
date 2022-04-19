@@ -220,14 +220,21 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 		return
 	}
 
+	repo := event.GetRepo().GetName()
+	org := event.GetRepo().GetOwner().GetLogin()
+	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
+
 	if event.GetAction() == "in_progress" {
-		repo := event.GetRepo().GetName()
-		org := event.GetRepo().GetOwner().GetLogin()
 		lastStep := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1]
 		queuedSeconds := lastStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
-		runnerGroup := event.WorkflowJob.GetRunnerGroupName()
-
 		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, queuedSeconds)
+	}
+
+	if event.GetAction() == "completed" {
+		firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
+		lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
+		jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
+		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, float64(jobSeconds))
 	}
 }
 
