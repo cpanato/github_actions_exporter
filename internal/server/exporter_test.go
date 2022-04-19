@@ -185,13 +185,13 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-
-	observation := <-observer.observed
-	assert.Equal(t, org, observation.org)
-	assert.Equal(t, repo, observation.repo)
-	assert.Equal(t, "queued", observation.state)
-	assert.Equal(t, runnerGroupName, observation.runnerGroup)
-	assert.Equal(t, expectedDuration, observation.seconds)
+	observer.assetObservation(jobObservation{
+		org:         org,
+		repo:        repo,
+		state:       "queued",
+		runnerGroup: runnerGroupName,
+		seconds:     expectedDuration,
+	}, 50*time.Millisecond)
 }
 
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
@@ -248,5 +248,14 @@ func (o *testJobObserver) assertNoObservation(timeout time.Duration) {
 	case <-time.After(timeout):
 	case <-o.observed:
 		o.t.Fatal("expected no observation but an observation occurred")
+	}
+}
+
+func (o *testJobObserver) assetObservation(expected jobObservation, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected no observation but none occurred")
+	case observed := <-o.observed:
+		assert.Equal(o.t, expected, observed)
 	}
 }
