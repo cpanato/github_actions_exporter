@@ -180,10 +180,6 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte(`{"status": "honk"}`))
 		return
-	case "check_run":
-		event := model.CheckRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		_ = level.Info(c.Logger).Log("msg", "got check_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflowName", event.GetCheckRun().GetName())
-		go c.CollectWorkflowRun(event)
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID(), "action", event.GetAction())
@@ -202,22 +198,6 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-}
-
-// CollectWorkflowRun collect the workflow execution run metric
-func (c *GHActionExporter) CollectWorkflowRun(checkRunEvent *github.CheckRunEvent) {
-	if checkRunEvent.GetCheckRun().GetStatus() != "completed" {
-		return
-	}
-
-	workflowName := checkRunEvent.GetCheckRun().GetName()
-	repo := checkRunEvent.GetRepo().GetName()
-	org := checkRunEvent.GetRepo().GetOwner().GetLogin()
-	endTime := checkRunEvent.GetCheckRun().GetCompletedAt()
-	startTime := checkRunEvent.GetCheckRun().GetStartedAt()
-	executionTime := endTime.Sub(startTime.Time).Seconds()
-
-	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName).Observe(executionTime)
 }
 
 func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {

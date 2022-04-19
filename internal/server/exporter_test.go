@@ -87,24 +87,6 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 	assert.Equal(t, `{"status": "honk"}`, res.Body.String())
 }
 
-func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
-	// Given
-	subject := server.GHActionExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.Opts{
-			GitHubToken: webhookSecret,
-		},
-	}
-	req := testWebhookRequest(t, "/anything", "check_run", github.CheckRun{})
-
-	// When
-	res := httptest.NewRecorder()
-	subject.HandleGHWebHook(res, req)
-
-	// Then
-	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-}
-
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
 	// Given
 	observer := &TestJobObserver{}
