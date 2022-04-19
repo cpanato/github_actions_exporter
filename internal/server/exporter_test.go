@@ -132,7 +132,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoObservation(1 * time.Second)
+	observer.assertNoWorkflowJobObservation(1 * time.Second)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
@@ -182,7 +182,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetObservation(jobObservation{
+	observer.assetWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "queued",
@@ -238,7 +238,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetObservation(jobObservation{
+	observer.assetWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "queued",
@@ -299,7 +299,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetObservation(jobObservation{
+	observer.assetWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "in_progress",
@@ -345,7 +345,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoObservation(1 * time.Second)
+	observer.assertNoWorkflowJobObservation(1 * time.Second)
 }
 
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
@@ -368,7 +368,7 @@ func addValidSignatureHeader(t *testing.T, req *http.Request, payload []byte) {
 	req.Header.Add("X-Hub-Signature", fmt.Sprintf("sha1=%s", hex.EncodeToString(h.Sum(nil))))
 }
 
-type jobObservation struct {
+type workflowJobObservation struct {
 	org, repo, state, runnerGroup string
 	seconds                       float64
 }
@@ -376,19 +376,19 @@ type jobObservation struct {
 var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
 
 type TestJobObserver struct {
-	t        *testing.T
-	observed chan jobObservation
+	t                   *testing.T
+	workFlowJobObserved chan workflowJobObservation
 }
 
 func NewTestJobObserver(t *testing.T) *TestJobObserver {
 	return &TestJobObserver{
-		t:        t,
-		observed: make(chan jobObservation, 1),
+		t:                   t,
+		workFlowJobObserved: make(chan workflowJobObservation, 1),
 	}
 }
 
 func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
-	o.observed <- jobObservation{
+	o.workFlowJobObserved <- workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       state,
@@ -397,19 +397,19 @@ func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGro
 	}
 }
 
-func (o *TestJobObserver) assertNoObservation(timeout time.Duration) {
+func (o *TestJobObserver) assertNoWorkflowJobObservation(timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
-	case <-o.observed:
+	case <-o.workFlowJobObserved:
 		o.t.Fatal("expected no observation but an observation occurred")
 	}
 }
 
-func (o *TestJobObserver) assetObservation(expected jobObservation, timeout time.Duration) {
+func (o *TestJobObserver) assetWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected no observation but none occurred")
-	case observed := <-o.observed:
+	case observed := <-o.workFlowJobObserved:
 		assert.Equal(o.t, expected, observed)
 	}
 }
