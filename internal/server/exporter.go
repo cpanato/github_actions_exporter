@@ -23,7 +23,7 @@ import (
 
 var (
 	workflowJobHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "workflow_job_seconds",
+		Name:    "workflow_job_duration_seconds",
 		Help:    "Time that a workflow job took to reach a given state.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
 	},

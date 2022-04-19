@@ -115,5 +115,5 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 
 	payload, err := ioutil.ReadAll(metricsRes.Body)
 	require.NoError(t, err)
-	assert.Contains(t, string(payload), `workflow_job_seconds_bucket{org="someone",repo="some-repo",runner_group="runner-group",state="queued",le="10.541350399999995"} 1`)
+	assert.Contains(t, string(payload), `workflow_job_duration_seconds_bucket{org="someone",repo="some-repo",runner_group="runner-group",state="queued",le="10.541350399999995"} 1`)
 }
