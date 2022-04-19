@@ -231,7 +231,7 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
 	}
 
-	if event.GetAction() == "completed" {
+	if event.GetAction() == "completed" && event.GetWorkflowJob().GetConclusion() != "skipped" {
 		firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
 		lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
 		jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
