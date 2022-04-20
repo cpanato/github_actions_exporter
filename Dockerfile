@@ -1,11 +1,7 @@
-ARG ARCH="amd64"
-ARG OS="linux"
-FROM quay.io/prometheus/busybox:latest
+FROM ghcr.io/distroless/busybox:latest
 
-ARG ARCH="amd64"
-ARG OS="linux"
-COPY .build/${OS}-${ARCH}/github_actions_exporter /bin/github_actions_exporter
+COPY github-actions-exporter /bin/github-actions-exporter
 
 USER nobody
-ENTRYPOINT ["/bin/github_actions_exporter"]
+ENTRYPOINT ["/bin/github-actions-exporter"]
 EXPOSE     9101
