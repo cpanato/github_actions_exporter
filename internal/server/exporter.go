@@ -128,7 +128,6 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
-
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
@@ -168,6 +167,9 @@ func (c *GHActionExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEven
 	workflowName := event.GetWorkflow().GetName()
 	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
 	c.JobObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+
+	status := event.GetWorkflowRun().GetStatus()
+	c.JobObserver.CountWorkflowRunStatus(org, repo, workflowName, status)
 }
 
 // validateSignature validate the incoming github event.

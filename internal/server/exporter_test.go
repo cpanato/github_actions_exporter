@@ -391,6 +391,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 	expectedRunDuration := 5.0
 	runStartTime := time.Unix(1650308740, 0)
 	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
+	status := "completed"
 	event := github.WorkflowRunEvent{
 		Action: github.String("completed"),
 		Repo: &github.Repository{
@@ -403,7 +404,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 			Name: &workflowName,
 		},
 		WorkflowRun: &github.WorkflowRun{
-			Status:       github.String("completed"),
+			Status:       &status,
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
 		},
@@ -421,6 +422,12 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 		repo:         repo,
 		workflowName: workflowName,
 		seconds:      expectedRunDuration,
+	}, 50*time.Millisecond)
+	observer.assertWorkflowRunStatusCount(workflowRunStatusCount{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		status:       status,
 	}, 50*time.Millisecond)
 }
 
@@ -467,6 +474,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
+	observer.assertNoWorkflowRunStatusCount(1 * time.Second)
 }
 
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
@@ -502,6 +510,10 @@ type workflowRunObservation struct {
 	seconds                 float64
 }
 
+type workflowRunStatusCount struct {
+	org, repo, workflowName, status string
+}
+
 var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
 
 type TestJobObserver struct {
@@ -509,6 +521,7 @@ type TestJobObserver struct {
 	workFlowJobDurationObserved chan workflowJobObservation
 	workflowJobStatusCounted    chan workflowJobStatusCount
 	workflowRunObserved         chan workflowRunObservation
+	workflowRunStatusCounted    chan workflowRunStatusCount
 }
 
 func NewTestJobObserver(t *testing.T) *TestJobObserver {
@@ -517,6 +530,7 @@ func NewTestJobObserver(t *testing.T) *TestJobObserver {
 		workFlowJobDurationObserved: make(chan workflowJobObservation, 1),
 		workflowJobStatusCounted:    make(chan workflowJobStatusCount, 1),
 		workflowRunObserved:         make(chan workflowRunObservation, 1),
+		workflowRunStatusCounted:    make(chan workflowRunStatusCount, 1),
 	}
 }
 
@@ -545,6 +559,15 @@ func (o *TestJobObserver) ObserveWorkflowRunDuration(org, repo, workflowName str
 		repo:         repo,
 		workflowName: workflowName,
 		seconds:      seconds,
+	}
+}
+
+func (o *TestJobObserver) CountWorkflowRunStatus(org, repo, workflowName, status string) {
+	o.workflowRunStatusCounted <- workflowRunStatusCount{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		status:       status,
 	}
 }
 
@@ -580,5 +603,22 @@ func (o *TestJobObserver) assetWorkflowRunObservation(expected workflowRunObserv
 		o.t.Fatal("expected observation but none occurred")
 	case observed := <-o.workflowRunObserved:
 		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestJobObserver) assertWorkflowRunStatusCount(expected workflowRunStatusCount, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected observation but none occurred")
+	case observed := <-o.workflowRunStatusCounted:
+		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestJobObserver) assertNoWorkflowRunStatusCount(timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+	case <-o.workflowRunObserved:
+		o.t.Fatal("expected no observation but an observation occurred")
 	}
 }

@@ -13,7 +13,7 @@ var (
 
 	workflowJobStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "workflow_job_status_count",
-		Help: "Count of the occurances of different workflow job states.",
+		Help: "Count of the occurrences of different workflow job states.",
 	},
 		[]string{"org", "repo", "status", "runner_group"},
 	)
@@ -24,6 +24,13 @@ var (
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
 	},
 		[]string{"org", "repo", "workflow_name"},
+	)
+
+	workflowRunStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "workflow_status_count",
+		Help: "Count of the occurrences of different workflow states.",
+	},
+		[]string{"org", "repo", "workflow_name", "status"},
 	)
 
 	totalMinutesUsedActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -70,10 +77,11 @@ var (
 )
 
 func init() {
-	//Register metrics with prometheus
+	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
 	prometheus.MustRegister(workflowJobStatusCounter)
 	prometheus.MustRegister(workflowRunHistogramVec)
+	prometheus.MustRegister(workflowRunStatusCounter)
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
@@ -86,6 +94,7 @@ type WorkflowJobObserver interface {
 	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
 	CountWorkflowJobStatus(org, repo, status, runnerGroup string)
 	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
+	CountWorkflowRunStatus(org, repo, workflow, status string)
 }
 
 var _ WorkflowJobObserver = (*JobObserver)(nil)
@@ -101,7 +110,11 @@ func (o *JobObserver) CountWorkflowJobStatus(org, repo, status, runnerGroup stri
 	workflowJobStatusCounter.WithLabelValues(org, repo, status, runnerGroup).Inc()
 }
 
-func (o *JobObserver) ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64) {
-	workflowRunHistogramVec.WithLabelValues(org, repo, workflow).
+func (o *JobObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
+	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName).
 		Observe(seconds)
+}
+
+func (o *JobObserver) CountWorkflowRunStatus(org, repo, workflowName, status string) {
+	workflowRunStatusCounter.WithLabelValues(org, repo, workflowName, status).Inc()
 }
