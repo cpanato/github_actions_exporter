@@ -39,18 +39,18 @@ func main() {
 	kingpin.Parse()
 	logger := promlog.New(promlogConfig)
 
-	level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
-	level.Info(logger).Log("build_context", version.BuildContext())
+	_ = level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
+	_ = level.Info(logger).Log("build_context", version.BuildContext())
 
 	if err := validateFlags(*gitHubAPIToken, *gitHubToken, *gitHubOrg, *gitHubUser); err != nil {
-		level.Error(logger).Log("msg", "Missing configure flags", "err", err)
+		_ = level.Error(logger).Log("msg", "Missing configure flags", "err", err)
 		os.Exit(1)
 	}
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	srv := server.NewServer(logger, server.ServerOpts{
+	srv := server.NewServer(logger, server.Opts{
 		WebhookPath:    *ghWebHookPath,
 		ListenAddress:  *listenAddress,
 		MetricsPath:    *metricsPath,
@@ -62,16 +62,16 @@ func main() {
 	go func() {
 		err := srv.Serve(context.Background())
 		if err != nil {
-			level.Error(logger).Log("msg", "Server closed", "err", err)
+			_ = level.Error(logger).Log("msg", "Server closed", "err", err)
 		} else {
-			level.Info(logger).Log("msg", "Server closed")
+			_ = level.Info(logger).Log("msg", "Server closed")
 		}
 	}()
 
-	level.Info(logger).Log("msg", fmt.Sprintf("Signal received: %v. Exiting...", <-signalChan))
+	_ = level.Info(logger).Log("msg", fmt.Sprintf("Signal received: %v. Exiting...", <-signalChan))
 	err := srv.Shutdown(context.Background())
 	if err != nil {
-		level.Error(logger).Log("msg", "Error occurred while closing the server", "err", err)
+		_ = level.Error(logger).Log("msg", "Error occurred while closing the server", "err", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

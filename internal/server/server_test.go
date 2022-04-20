@@ -17,7 +17,7 @@ import (
 
 func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	srv := server.NewServer(logger, server.ServerOpts{
+	srv := server.NewServer(logger, server.Opts{
 		MetricsPath:    "/metrics",
 		ListenAddress:  ":8000",
 		WebhookPath:    "/webhook",
@@ -52,7 +52,7 @@ func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 
 func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
-	srv := server.NewServer(logger, server.ServerOpts{
+	srv := server.NewServer(logger, server.Opts{
 		MetricsPath:    "/metrics",
 		ListenAddress:  ":8000",
 		WebhookPath:    "/webhook",

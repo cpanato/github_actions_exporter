@@ -14,7 +14,7 @@ import (
 	"github.com/prometheus/common/version"
 )
 
-type ServerOpts struct {
+type Opts struct {
 	MetricsPath   string
 	ListenAddress string
 	WebhookPath   string
@@ -30,10 +30,10 @@ type Server struct {
 	logger   log.Logger
 	server   *http.Server
 	exporter *GHActionExporter
-	opts     ServerOpts
+	opts     Opts
 }
 
-func NewServer(logger log.Logger, opts ServerOpts) *Server {
+func NewServer(logger log.Logger, opts Opts) *Server {
 	mux := http.NewServeMux()
 
 	httpServer := &http.Server{
@@ -56,17 +56,16 @@ func NewServer(logger log.Logger, opts ServerOpts) *Server {
 }
 
 func (s *Server) Serve(ctx context.Context) error {
-
 	listener, err := getListener(s.opts.ListenAddress, s.logger)
 	if err != nil {
-		return fmt.Errorf("get listener: %v", err)
+		return fmt.Errorf("get listener: %w", err)
 	}
 
-	level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter has successfully started")
+	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter has successfully started")
 	err = s.server.Serve(listener)
 
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("server closed: %v", err)
+		return fmt.Errorf("server closed: %w", err)
 	}
 	return nil
 }
@@ -76,7 +75,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 }
 
 func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
-	w.Write([]byte(`<html>
+	_, _ = w.Write([]byte(`<html>
 		<head><title>GitHub Actions Exporter</title></head>
 		<body>
 		<h1>GitHub Actions Exporter</h1>
@@ -94,7 +93,7 @@ func getListener(listenAddress string, logger log.Logger) (net.Listener, error) 
 	if strings.HasPrefix(listenAddress, "unix:") {
 		path, _, pathError := parseUnixSocketAddress(listenAddress)
 		if pathError != nil {
-			return listener, fmt.Errorf("parsing unix domain socket listen address %s failed: %v", listenAddress, pathError)
+			return listener, fmt.Errorf("parsing unix domain socket listen address %s failed: %w", listenAddress, pathError)
 		}
 		listener, err = net.ListenUnix("unix", &net.UnixAddr{Name: path, Net: "unix"})
 	} else {
@@ -105,7 +104,7 @@ func getListener(listenAddress string, logger log.Logger) (net.Listener, error) 
 		return listener, err
 	}
 
-	level.Info(logger).Log("msg", fmt.Sprintf("Listening on %s", listenAddress))
+	_ = level.Info(logger).Log("msg", fmt.Sprintf("Listening on %s", listenAddress))
 	return listener, nil
 }
 

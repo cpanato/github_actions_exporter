@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
-	"crypto/sha1"
+	"crypto/sha1" // nolint: gosec
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -82,7 +82,7 @@ var (
 )
 
 func init() {
-	//Register metrics with prometheus
+	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
 	prometheus.MustRegister(histogramVec)
 	prometheus.MustRegister(totalMinutesUsedActions)
@@ -97,11 +97,11 @@ func init() {
 type GHActionExporter struct {
 	GHClient    *github.Client
 	Logger      log.Logger
-	Opts        ServerOpts
+	Opts        Opts
 	JobObserver WorkflowJobObserver
 }
 
-func NewGHActionExporter(logger log.Logger, opts ServerOpts) *GHActionExporter {
+func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
@@ -122,13 +122,13 @@ func (c *GHActionExporter) CollectActionBilling() {
 	if c.Opts.GitHubOrg != "" {
 		actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingOrg(context.TODO(), c.Opts.GitHubOrg)
 		if err != nil {
-			c.Logger.Log("msg", "failed to retrive the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
+			_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
 			return
 		}
 
 		totalMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.TotalMinutesUsed))
 		includedMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.IncludedMinutes))
-		totalPaidMinutesActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.TotalPaidMinutesUsed))
+		totalPaidMinutesActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(actionsBilling.TotalPaidMinutesUsed)
 		totalMinutesUsedUbuntuActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
 		totalMinutesUsedMacOSActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
 		totalMinutesUsedWindowsActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
@@ -137,13 +137,13 @@ func (c *GHActionExporter) CollectActionBilling() {
 	if c.Opts.GitHubUser != "" {
 		actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingUser(context.TODO(), c.Opts.GitHubUser)
 		if err != nil {
-			c.Logger.Log("msg", "failed to retrive the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
+			_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
 			return
 		}
 
 		totalMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.TotalMinutesUsed))
 		includedMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.IncludedMinutes))
-		totalPaidMinutesActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.TotalPaidMinutesUsed))
+		totalPaidMinutesActions.WithLabelValues("", c.Opts.GitHubUser).Set(actionsBilling.TotalPaidMinutesUsed)
 		totalMinutesUsedUbuntuActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
 		totalMinutesUsedMacOSActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
 		totalMinutesUsedWindowsActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
@@ -156,14 +156,14 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
 	if receivedHash[0] != "sha1" {
-		level.Error(c.Logger).Log("msg", "invalid webhook hash signature: SHA1")
+		_ = level.Error(c.Logger).Log("msg", "invalid webhook hash signature: SHA1")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	err := validateSignature(c.Opts.GitHubToken, receivedHash, buf)
 	if err != nil {
-		level.Error(c.Logger).Log("msg", "invalid token", "err", err)
+		_ = level.Error(c.Logger).Log("msg", "invalid token", "err", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -173,23 +173,23 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 	case "ping":
 		pingEvent := model.PingEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
 		if pingEvent == nil {
-			level.Info(c.Logger).Log("msg", "ping event", "hookID", pingEvent.GetHookID())
+			_ = level.Info(c.Logger).Log("msg", "ping event", "hookID", pingEvent.GetHookID())
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
-		w.Write([]byte(`{"status": "honk"}`))
+		_, _ = w.Write([]byte(`{"status": "honk"}`))
 		return
 	case "check_run":
 		event := model.CheckRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		level.Info(c.Logger).Log("msg", "got check_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflowName", event.GetCheckRun().GetName())
+		_ = level.Info(c.Logger).Log("msg", "got check_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflowName", event.GetCheckRun().GetName())
 		go c.CollectWorkflowRun(event)
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID())
+		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID())
 		go c.CollectWorkflowJobEvent(event)
 	default:
-		level.Info(c.Logger).Log("msg", "not implemented")
+		_ = level.Info(c.Logger).Log("msg", "not implemented")
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}

@@ -25,11 +25,10 @@ const (
 )
 
 func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
-
 	// Given
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 	}
@@ -47,12 +46,11 @@ func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -71,11 +69,10 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
-
 	// Given
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 	}
@@ -91,11 +88,10 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 }
 
 func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
-
 	// Given
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 	}
@@ -110,12 +106,11 @@ func Test_GHActionExporter_HandleGHWebHook_CheckRun(t *testing.T) {
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
-
 	// Given
-	observer := &testJobObserver{}
+	observer := &TestJobObserver{}
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -141,12 +136,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -198,12 +192,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -255,12 +248,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -317,12 +309,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedConclusion(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.ServerOpts{
+		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
 		JobObserver: observer,
@@ -382,21 +373,21 @@ type jobObservation struct {
 	seconds                       float64
 }
 
-var _ server.WorkflowJobObserver = (*testJobObserver)(nil)
+var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
 
-type testJobObserver struct {
+type TestJobObserver struct {
 	t        *testing.T
 	observed chan jobObservation
 }
 
-func NewTestJobObserver(t *testing.T) *testJobObserver {
-	return &testJobObserver{
+func NewTestJobObserver(t *testing.T) *TestJobObserver {
+	return &TestJobObserver{
 		t:        t,
 		observed: make(chan jobObservation, 1),
 	}
 }
 
-func (o *testJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
+func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
 	o.observed <- jobObservation{
 		org:         org,
 		repo:        repo,
@@ -406,7 +397,7 @@ func (o *testJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGro
 	}
 }
 
-func (o *testJobObserver) assertNoObservation(timeout time.Duration) {
+func (o *TestJobObserver) assertNoObservation(timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 	case <-o.observed:
@@ -414,7 +405,7 @@ func (o *testJobObserver) assertNoObservation(timeout time.Duration) {
 	}
 }
 
-func (o *testJobObserver) assetObservation(expected jobObservation, timeout time.Duration) {
+func (o *TestJobObserver) assetObservation(expected jobObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected no observation but none occurred")
