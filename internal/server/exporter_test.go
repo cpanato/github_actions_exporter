@@ -31,7 +31,6 @@ func Test_WorkflowExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T)
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
 	}
 
 	req, err := http.NewRequest("POST", "/anything", bytes.NewReader(nil))
@@ -54,8 +53,7 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	req, err := http.NewRequest("POST", "/anything", bytes.NewReader(nil))
@@ -77,7 +75,6 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
 	}
 	req := testWebhookRequest(t, "/anything", "ping", github.PingEvent{})
 
@@ -98,8 +95,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	org := "org"
@@ -143,8 +139,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -207,8 +202,7 @@ func Test_WorkflowExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -271,8 +265,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -341,8 +334,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -390,8 +382,7 @@ func Test_WorkflowExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -448,8 +439,7 @@ func Test_WorkflowExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t 
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver:            observer,
-		BillingMetricsExporter: &server.BillingMetricsExporter{},
+		JobObserver: observer,
 	}
 
 	repo := "some-repo"

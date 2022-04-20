@@ -21,15 +21,17 @@ type Opts struct {
 	// GitHub webhook token.
 	GitHubToken string
 	// GitHub API token.
-	GitHubAPIToken string
-	GitHubOrg      string
-	GitHubUser     string
+	GitHubAPIToken        string
+	GitHubOrg             string
+	GitHubUser            string
+	BillingAPIPollSeconds int
 }
 
 type Server struct {
 	logger           log.Logger
 	server           *http.Server
 	workflowExporter *WorkflowExporter
+	billingExporter  *BillingMetricsExporter
 	opts             Opts
 }
 
@@ -40,11 +42,22 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		Handler: mux,
 	}
 
+	billingExporter := NewBillingMetricsExporter(logger, opts)
+	err := billingExporter.StartOrgBilling(context.TODO())
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
+	}
+	err = billingExporter.StartUserBilling(context.TODO())
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+	}
+
 	workflowExporter := NewWorkflowExporter(logger, opts)
 	server := &Server{
 		logger:           logger,
 		server:           httpServer,
 		workflowExporter: workflowExporter,
+		billingExporter:  billingExporter,
 		opts:             opts,
 	}
 

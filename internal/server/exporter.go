@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"context"
 	"crypto/hmac"
 	"crypto/sha1" // nolint: gosec
 	"encoding/hex"
@@ -17,32 +16,21 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/google/go-github/v43/github"
-	"golang.org/x/oauth2"
 )
 
 // WorkflowExporter struct to hold some information
 type WorkflowExporter struct {
-	GHClient               *github.Client
-	Logger                 log.Logger
-	Opts                   Opts
-	JobObserver            WorkflowJobObserver
-	BillingMetricsExporter *BillingMetricsExporter
+	GHClient    *github.Client
+	Logger      log.Logger
+	Opts        Opts
+	JobObserver WorkflowJobObserver
 }
 
 func NewWorkflowExporter(logger log.Logger, opts Opts) *WorkflowExporter {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
 	return &WorkflowExporter{
-		GHClient:               client,
-		Logger:                 logger,
-		Opts:                   opts,
-		JobObserver:            &JobObserver{},
-		BillingMetricsExporter: &BillingMetricsExporter{},
+		Logger:      logger,
+		Opts:        opts,
+		JobObserver: &JobObserver{},
 	}
 }
 
@@ -89,8 +77,6 @@ func (c *WorkflowExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
-
-	go c.BillingMetricsExporter.CollectActionBilling(context.TODO())
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
