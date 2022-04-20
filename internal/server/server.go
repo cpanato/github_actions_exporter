@@ -27,10 +27,10 @@ type Opts struct {
 }
 
 type Server struct {
-	logger   log.Logger
-	server   *http.Server
-	exporter *GHActionExporter
-	opts     Opts
+	logger           log.Logger
+	server           *http.Server
+	workflowExporter *WorkflowExporter
+	opts             Opts
 }
 
 func NewServer(logger log.Logger, opts Opts) *Server {
@@ -40,16 +40,16 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		Handler: mux,
 	}
 
-	exporter := NewGHActionExporter(logger, opts)
+	workflowExporter := NewWorkflowExporter(logger, opts)
 	server := &Server{
-		logger:   logger,
-		server:   httpServer,
-		exporter: exporter,
-		opts:     opts,
+		logger:           logger,
+		server:           httpServer,
+		workflowExporter: workflowExporter,
+		opts:             opts,
 	}
 
 	mux.Handle(opts.MetricsPath, promhttp.Handler())
-	mux.HandleFunc(opts.WebhookPath, server.exporter.HandleGHWebHook)
+	mux.HandleFunc(opts.WebhookPath, server.workflowExporter.HandleGHWebHook)
 	mux.HandleFunc("/", server.handleRoot)
 
 	return server

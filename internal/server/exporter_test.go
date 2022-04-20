@@ -24,9 +24,9 @@ const (
 	webhookSecret = "webhook-secret"
 )
 
-func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
+func Test_WorkflowExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
 	// Given
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -49,7 +49,7 @@ func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T)
 func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -72,7 +72,7 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 
 func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 	// Given
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -93,7 +93,7 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -138,7 +138,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -199,10 +199,10 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
+func Test_WorkflowExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -266,7 +266,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -336,7 +336,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedConclusion(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -382,10 +382,10 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
+func Test_WorkflowExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -440,10 +440,10 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
+func Test_WorkflowExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
 	// Given
 	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	subject := server.WorkflowExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,

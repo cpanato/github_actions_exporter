@@ -20,8 +20,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// GHActionExporter struct to hold some information
-type GHActionExporter struct {
+// WorkflowExporter struct to hold some information
+type WorkflowExporter struct {
 	GHClient               *github.Client
 	Logger                 log.Logger
 	Opts                   Opts
@@ -29,7 +29,7 @@ type GHActionExporter struct {
 	BillingMetricsExporter *BillingMetricsExporter
 }
 
-func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
+func NewWorkflowExporter(logger log.Logger, opts Opts) *WorkflowExporter {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
@@ -37,7 +37,7 @@ func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	return &GHActionExporter{
+	return &WorkflowExporter{
 		GHClient:               client,
 		Logger:                 logger,
 		Opts:                   opts,
@@ -47,7 +47,7 @@ func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
 }
 
 // handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
-func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
+func (c *WorkflowExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
 	buf, _ := ioutil.ReadAll(r.Body)
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
@@ -96,7 +96,7 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
+func (c *WorkflowExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
@@ -126,7 +126,7 @@ func (c *GHActionExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 	c.JobObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
 }
 
-func (c *GHActionExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
+func (c *WorkflowExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
 	if event.GetAction() != "completed" {
 		return
 	}
