@@ -1,4 +1,4 @@
-all:: lint test
+all:: lint test build
 
 .PHONY: lint
 lint:
@@ -7,5 +7,9 @@ lint:
 
 .PHONY: test
 test:
-	@echo ">> running all tests"                                                                                                                                                                                                  │
+	@echo ">> running all tests"
 	GO111MODULE=on go test -race  ./...
+
+.PHONY: build
+build:
+	go build .
