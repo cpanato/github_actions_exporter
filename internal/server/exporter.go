@@ -22,10 +22,11 @@ import (
 
 // GHActionExporter struct to hold some information
 type GHActionExporter struct {
-	GHClient    *github.Client
-	Logger      log.Logger
-	Opts        Opts
-	JobObserver WorkflowJobObserver
+	GHClient               *github.Client
+	Logger                 log.Logger
+	Opts                   Opts
+	JobObserver            WorkflowJobObserver
+	BillingMetricsExporter *BillingMetricsExporter
 }
 
 func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
@@ -37,43 +38,11 @@ func NewGHActionExporter(logger log.Logger, opts Opts) *GHActionExporter {
 	client := github.NewClient(tc)
 
 	return &GHActionExporter{
-		GHClient:    client,
-		Logger:      logger,
-		Opts:        opts,
-		JobObserver: &JobObserver{},
-	}
-}
-
-// CollectActionBilling collect the action billing.
-func (c *GHActionExporter) CollectActionBilling() {
-	if c.Opts.GitHubOrg != "" {
-		actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingOrg(context.TODO(), c.Opts.GitHubOrg)
-		if err != nil {
-			_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
-			return
-		}
-
-		totalMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.TotalMinutesUsed))
-		includedMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.IncludedMinutes))
-		totalPaidMinutesActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(actionsBilling.TotalPaidMinutesUsed)
-		totalMinutesUsedUbuntuActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-		totalMinutesUsedMacOSActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-		totalMinutesUsedWindowsActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
-	}
-
-	if c.Opts.GitHubUser != "" {
-		actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingUser(context.TODO(), c.Opts.GitHubUser)
-		if err != nil {
-			_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
-			return
-		}
-
-		totalMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.TotalMinutesUsed))
-		includedMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.IncludedMinutes))
-		totalPaidMinutesActions.WithLabelValues("", c.Opts.GitHubUser).Set(actionsBilling.TotalPaidMinutesUsed)
-		totalMinutesUsedUbuntuActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-		totalMinutesUsedMacOSActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-		totalMinutesUsedWindowsActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
+		GHClient:               client,
+		Logger:                 logger,
+		Opts:                   opts,
+		JobObserver:            &JobObserver{},
+		BillingMetricsExporter: &BillingMetricsExporter{},
 	}
 }
 
@@ -121,7 +90,7 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	go c.CollectActionBilling()
+	go c.BillingMetricsExporter.CollectActionBilling(context.TODO())
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
