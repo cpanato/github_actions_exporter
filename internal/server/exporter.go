@@ -186,7 +186,7 @@ func (c *GHActionExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 		go c.CollectWorkflowJobEvent(event)
 	case "workflow_run":
 		event := model.WorkflowRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
-		level.Info(c.Logger).Log("msg", "got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
+		_ = level.Info(c.Logger).Log("msg", "got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
 		go c.CollectWorkflowRunEvent(event)
 	default:
 		_ = level.Info(c.Logger).Log("msg", "not implemented", "eventType", eventType)
@@ -232,7 +232,7 @@ func (c *GHActionExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEven
 	org := event.GetRepo().GetOwner().GetLogin()
 	workflowName := event.GetWorkflow().GetName()
 	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
-	c.JobObserver.ObserveWorkflowRunDuration(org, repo, workflowName, float64(seconds))
+	c.JobObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
 }
 
 // validateSignature validate the incoming github event.

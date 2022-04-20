@@ -331,7 +331,6 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
@@ -382,7 +381,6 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
-
 	// Given
 	observer := NewTestJobObserver(t)
 	subject := server.GHActionExporter{
