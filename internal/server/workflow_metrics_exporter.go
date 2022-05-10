@@ -23,7 +23,7 @@ type WorkflowMetricsExporter struct {
 	GHClient    *github.Client
 	Logger      log.Logger
 	Opts        Opts
-	JobObserver WorkflowJobObserver
+	JobObserver WorkflowObserver
 }
 
 func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {

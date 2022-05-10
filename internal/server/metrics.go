@@ -90,14 +90,14 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
 }
 
-type WorkflowJobObserver interface {
+type WorkflowObserver interface {
 	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
 	CountWorkflowJobStatus(org, repo, status, runnerGroup string)
 	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
 	CountWorkflowRunStatus(org, repo, workflow, status string)
 }
 
-var _ WorkflowJobObserver = (*JobObserver)(nil)
+var _ WorkflowObserver = (*JobObserver)(nil)
 
 type JobObserver struct{}
 

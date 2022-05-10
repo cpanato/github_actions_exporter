@@ -514,7 +514,7 @@ type workflowRunStatusCount struct {
 	org, repo, workflowName, status string
 }
 
-var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
+var _ server.WorkflowObserver = (*TestJobObserver)(nil)
 
 type TestJobObserver struct {
 	t                           *testing.T
