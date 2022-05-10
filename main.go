@@ -21,7 +21,7 @@ var (
 	listenAddress               = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
 	metricsPath                 = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	ghWebHookPath               = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
-	gitHubToken                 = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
+	githubWebhookToken          = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
 	gitHubAPIToken              = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Default("").String()
 	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
@@ -43,7 +43,7 @@ func main() {
 	_ = level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
 	_ = level.Info(logger).Log("build_context", version.BuildContext())
 
-	if err := validateFlags(*gitHubAPIToken); err != nil {
+	if err := validateFlags(*githubWebhookToken); err != nil {
 		_ = level.Error(logger).Log("msg", "Missing configure flags", "err", err)
 		os.Exit(1)
 	}
@@ -55,7 +55,7 @@ func main() {
 		WebhookPath:           *ghWebHookPath,
 		ListenAddress:         *listenAddress,
 		MetricsPath:           *metricsPath,
-		GitHubToken:           *gitHubToken,
+		GitHubToken:           *githubWebhookToken,
 		GitHubAPIToken:        *gitHubAPIToken,
 		GitHubUser:            *gitHubUser,
 		GitHubOrg:             *gitHubOrg,
@@ -79,7 +79,7 @@ func main() {
 	os.Exit(0)
 }
 
-func validateFlags(apiToken string) error {
+func validateFlags(token string) error {
 	if token == "" {
 		return errors.New("Please configure the GitHub Webhook Token")
 	}
