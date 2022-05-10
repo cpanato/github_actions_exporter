@@ -43,7 +43,7 @@ func main() {
 	_ = level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
 	_ = level.Info(logger).Log("build_context", version.BuildContext())
 
-	if err := validateFlags(*gitHubAPIToken, *gitHubToken, *gitHubOrg, *gitHubUser); err != nil {
+	if err := validateFlags(*gitHubAPIToken); err != nil {
 		_ = level.Error(logger).Log("msg", "Missing configure flags", "err", err)
 		os.Exit(1)
 	}
@@ -79,7 +79,7 @@ func main() {
 	os.Exit(0)
 }
 
-func validateFlags(apiToken, token, org, user string) error {
+func validateFlags(apiToken string) error {
 	if token == "" {
 		return errors.New("Please configure the GitHub Webhook Token")
 	}
