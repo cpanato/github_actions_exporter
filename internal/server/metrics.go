@@ -97,24 +97,24 @@ type WorkflowObserver interface {
 	CountWorkflowRunStatus(org, repo, workflow, status string)
 }
 
-var _ WorkflowObserver = (*JobObserver)(nil)
+var _ WorkflowObserver = (*PrometheusObserver)(nil)
 
-type JobObserver struct{}
+type PrometheusObserver struct{}
 
-func (o *JobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
+func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
 	workflowJobHistogramVec.WithLabelValues(org, repo, state, runnerGroup).
 		Observe(seconds)
 }
 
-func (o *JobObserver) CountWorkflowJobStatus(org, repo, status, runnerGroup string) {
+func (o *PrometheusObserver) CountWorkflowJobStatus(org, repo, status, runnerGroup string) {
 	workflowJobStatusCounter.WithLabelValues(org, repo, status, runnerGroup).Inc()
 }
 
-func (o *JobObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
+func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
 	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName).
 		Observe(seconds)
 }
 
-func (o *JobObserver) CountWorkflowRunStatus(org, repo, workflowName, status string) {
+func (o *PrometheusObserver) CountWorkflowRunStatus(org, repo, workflowName, status string) {
 	workflowRunStatusCounter.WithLabelValues(org, repo, workflowName, status).Inc()
 }

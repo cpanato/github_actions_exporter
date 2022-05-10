@@ -20,17 +20,17 @@ import (
 
 // WorkflowMetricsExporter struct to hold some information
 type WorkflowMetricsExporter struct {
-	GHClient    *github.Client
-	Logger      log.Logger
-	Opts        Opts
-	JobObserver WorkflowObserver
+	GHClient           *github.Client
+	Logger             log.Logger
+	Opts               Opts
+	PrometheusObserver WorkflowObserver
 }
 
 func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {
 	return &WorkflowMetricsExporter{
-		Logger:      logger,
-		Opts:        opts,
-		JobObserver: &JobObserver{},
+		Logger:             logger,
+		Opts:               opts,
+		PrometheusObserver: &PrometheusObserver{},
 	}
 }
 
@@ -97,7 +97,7 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 
 		firstStep := event.WorkflowJob.Steps[0]
 		queuedSeconds := firstStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
-		c.JobObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
+		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
 	case "completed":
 		status = event.GetWorkflowJob().GetConclusion()
 
@@ -105,11 +105,11 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 			firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
 			lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
 			jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
-			c.JobObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
+			c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
 		}
 	}
 
-	c.JobObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
+	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
 }
 
 func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
@@ -121,10 +121,10 @@ func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.Workflow
 	org := event.GetRepo().GetOwner().GetLogin()
 	workflowName := event.GetWorkflow().GetName()
 	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
-	c.JobObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+	c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
 
 	status := event.GetWorkflowRun().GetStatus()
-	c.JobObserver.CountWorkflowRunStatus(org, repo, workflowName, status)
+	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, workflowName, status)
 }
 
 // validateSignature validate the incoming github event.
