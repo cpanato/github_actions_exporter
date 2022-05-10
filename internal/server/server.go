@@ -30,7 +30,7 @@ type Opts struct {
 type Server struct {
 	logger                  log.Logger
 	server                  *http.Server
-	WorkflowMetricsExporter *WorkflowMetricsExporter
+	workflowMetricsExporter *WorkflowMetricsExporter
 	billingExporter         *BillingMetricsExporter
 	opts                    Opts
 }
@@ -52,17 +52,17 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
 	}
 
-	WorkflowMetricsExporter := NewWorkflowMetricsExporter(logger, opts)
+	workflowExporter := NewWorkflowMetricsExporter(logger, opts)
 	server := &Server{
 		logger:                  logger,
 		server:                  httpServer,
-		WorkflowMetricsExporter: WorkflowMetricsExporter,
+		workflowMetricsExporter: workflowExporter,
 		billingExporter:         billingExporter,
 		opts:                    opts,
 	}
 
 	mux.Handle(opts.MetricsPath, promhttp.Handler())
-	mux.HandleFunc(opts.WebhookPath, server.WorkflowMetricsExporter.HandleGHWebHook)
+	mux.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
 	mux.HandleFunc("/", server.handleRoot)
 
 	return server
