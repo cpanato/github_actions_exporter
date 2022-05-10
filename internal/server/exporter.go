@@ -18,16 +18,16 @@ import (
 	"github.com/google/go-github/v43/github"
 )
 
-// WorkflowExporter struct to hold some information
-type WorkflowExporter struct {
+// WorkflowMetricsExporter struct to hold some information
+type WorkflowMetricsExporter struct {
 	GHClient    *github.Client
 	Logger      log.Logger
 	Opts        Opts
 	JobObserver WorkflowJobObserver
 }
 
-func NewWorkflowExporter(logger log.Logger, opts Opts) *WorkflowExporter {
-	return &WorkflowExporter{
+func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {
+	return &WorkflowMetricsExporter{
 		Logger:      logger,
 		Opts:        opts,
 		JobObserver: &JobObserver{},
@@ -35,7 +35,7 @@ func NewWorkflowExporter(logger log.Logger, opts Opts) *WorkflowExporter {
 }
 
 // handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
-func (c *WorkflowExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
+func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
 	buf, _ := ioutil.ReadAll(r.Body)
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
@@ -82,7 +82,7 @@ func (c *WorkflowExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (c *WorkflowExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
+func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
@@ -112,7 +112,7 @@ func (c *WorkflowExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEven
 	c.JobObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
 }
 
-func (c *WorkflowExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
+func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
 	if event.GetAction() != "completed" {
 		return
 	}
