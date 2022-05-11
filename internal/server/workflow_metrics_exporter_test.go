@@ -24,9 +24,9 @@ const (
 	webhookSecret = "webhook-secret"
 )
 
-func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
+func Test_WorkflowMetricsExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
 	// Given
-	subject := server.GHActionExporter{
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -47,13 +47,13 @@ func Test_GHActionExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T)
 
 func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	req, err := http.NewRequest("POST", "/anything", bytes.NewReader(nil))
@@ -70,7 +70,7 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 
 func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 	// Given
-	subject := server.GHActionExporter{
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
@@ -89,21 +89,29 @@ func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) {
 	// Given
-	observer := &TestJobObserver{}
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
+
+	org := "org"
+	repo := "repo"
+	runnerGroupName := "runnerGroupName"
+	action := "queued"
 	event := github.WorkflowJobEvent{
-		Action: github.String("queued"),
+		Action: &action,
 		Repo: &github.Repository{
-			Name: github.String("some-repo"),
+			Name: &repo,
 			Owner: &github.User{
-				Login: github.String("someone"),
+				Login: &org,
 			},
+		},
+		WorkflowJob: &github.WorkflowJob{
+			RunnerGroupName: &runnerGroupName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -114,18 +122,24 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoWorkflowJobObservation(1 * time.Second)
+	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroupName,
+		status:      action,
+	}, 50*time.Millisecond)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -134,9 +148,10 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	jobStartedAt := time.Unix(1650308740, 0)
 	stepStartedAt := jobStartedAt.Add(time.Duration(expectedDuration) * time.Second)
 	runnerGroupName := "runner-group"
+	action := "in_progress"
 
 	event := github.WorkflowJobEvent{
-		Action: github.String("in_progress"),
+		Action: &action,
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -171,17 +186,23 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 		runnerGroup: runnerGroupName,
 		seconds:     expectedDuration,
 	}, 50*time.Millisecond)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroupName,
+		status:      action,
+	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
+func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativeDuration(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -190,9 +211,10 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 	jobStartedAt := time.Unix(1650308740, 0)
 	stepStartedAt := jobStartedAt.Add(-1 * time.Duration(expectedDuration) * time.Second)
 	runnerGroupName := "runner-group"
+	action := "in_progress"
 
 	event := github.WorkflowJobEvent{
-		Action: github.String("in_progress"),
+		Action: &action,
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -227,17 +249,23 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventWithNegativ
 		runnerGroup: runnerGroupName,
 		seconds:     0,
 	}, 50*time.Millisecond)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroupName,
+		status:      action,
+	}, 50*time.Millisecond)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -248,6 +276,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 	lastStepStartedAt := firstStepStartedAt.Add(time.Duration(expectedStepTime) * time.Second)
 	lastStepFinishedAt := lastStepStartedAt.Add(time.Duration(expectedStepTime) * time.Second)
 	runnerGroupName := "runner-group"
+	state := "success"
 
 	event := github.WorkflowJobEvent{
 		Action: github.String("completed"),
@@ -258,7 +287,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 			},
 		},
 		WorkflowJob: &github.WorkflowJob{
-			StartedAt: nil,
+			StartedAt:  nil,
+			Conclusion: &state,
 			Steps: []*github.TaskStep{
 				{
 					Number:    github.Int64(1),
@@ -288,22 +318,30 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 		runnerGroup: runnerGroupName,
 		seconds:     expectedStepTime * 2,
 	}, 50*time.Millisecond)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroupName,
+		status:      state,
+	}, 50*time.Millisecond)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedConclusion(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
 	org := "someone"
 	runnerGroupName := "runner-group"
+	state := "skipped"
+
 	event := github.WorkflowJobEvent{
 		Action: github.String("completed"),
 		Repo: &github.Repository{
@@ -314,7 +352,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 		},
 		WorkflowJob: &github.WorkflowJob{
 			StartedAt:       nil,
-			Conclusion:      github.String("skipped"),
+			Conclusion:      &state,
 			Steps:           []*github.TaskStep{},
 			RunnerGroupName: &runnerGroupName,
 		},
@@ -327,18 +365,24 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedC
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoWorkflowJobObservation(1 * time.Second)
+	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroupName,
+		status:      state,
+	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
+func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -347,6 +391,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 	expectedRunDuration := 5.0
 	runStartTime := time.Unix(1650308740, 0)
 	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
+	status := "completed"
 	event := github.WorkflowRunEvent{
 		Action: github.String("completed"),
 		Repo: &github.Repository{
@@ -359,7 +404,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 			Name: &workflowName,
 		},
 		WorkflowRun: &github.WorkflowRun{
-			Status:       github.String("completed"),
+			Status:       &status,
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
 		},
@@ -378,17 +423,23 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunCompleted(t *testing.T) {
 		workflowName: workflowName,
 		seconds:      expectedRunDuration,
 	}, 50*time.Millisecond)
+	observer.assertWorkflowRunStatusCount(workflowRunStatusCount{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		status:       status,
+	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
+func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t *testing.T) {
 	// Given
-	observer := NewTestJobObserver(t)
-	subject := server.GHActionExporter{
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
 		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
-		JobObserver: observer,
+		PrometheusObserver: observer,
 	}
 
 	repo := "some-repo"
@@ -422,7 +473,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompleted(t 
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoWorkflowJobObservation(1 * time.Second)
+	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
+	observer.assertNoWorkflowRunStatusCount(1 * time.Second)
 }
 
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
@@ -449,30 +501,41 @@ type workflowJobObservation struct {
 	org, repo, state, runnerGroup string
 	seconds                       float64
 }
+type workflowJobStatusCount struct {
+	org, repo, runnerGroup, status string
+}
 
 type workflowRunObservation struct {
 	org, repo, workflowName string
 	seconds                 float64
 }
 
-var _ server.WorkflowJobObserver = (*TestJobObserver)(nil)
-
-type TestJobObserver struct {
-	t                   *testing.T
-	workFlowJobObserved chan workflowJobObservation
-	workflowRunObserved chan workflowRunObservation
+type workflowRunStatusCount struct {
+	org, repo, workflowName, status string
 }
 
-func NewTestJobObserver(t *testing.T) *TestJobObserver {
-	return &TestJobObserver{
-		t:                   t,
-		workFlowJobObserved: make(chan workflowJobObservation, 1),
-		workflowRunObserved: make(chan workflowRunObservation, 1),
+var _ server.WorkflowObserver = (*TestPrometheusObserver)(nil)
+
+type TestPrometheusObserver struct {
+	t                           *testing.T
+	workFlowJobDurationObserved chan workflowJobObservation
+	workflowJobStatusCounted    chan workflowJobStatusCount
+	workflowRunObserved         chan workflowRunObservation
+	workflowRunStatusCounted    chan workflowRunStatusCount
+}
+
+func NewTestPrometheusObserver(t *testing.T) *TestPrometheusObserver {
+	return &TestPrometheusObserver{
+		t:                           t,
+		workFlowJobDurationObserved: make(chan workflowJobObservation, 1),
+		workflowJobStatusCounted:    make(chan workflowJobStatusCount, 1),
+		workflowRunObserved:         make(chan workflowRunObservation, 1),
+		workflowRunStatusCounted:    make(chan workflowRunStatusCount, 1),
 	}
 }
 
-func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
-	o.workFlowJobObserved <- workflowJobObservation{
+func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
+	o.workFlowJobDurationObserved <- workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       state,
@@ -481,7 +544,16 @@ func (o *TestJobObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGro
 	}
 }
 
-func (o *TestJobObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
+func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, status, runnerGroup string) {
+	o.workflowJobStatusCounted <- workflowJobStatusCount{
+		org:         org,
+		repo:        repo,
+		runnerGroup: runnerGroup,
+		status:      status,
+	}
+}
+
+func (o *TestPrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
 	o.workflowRunObserved <- workflowRunObservation{
 		org:          org,
 		repo:         repo,
@@ -490,28 +562,63 @@ func (o *TestJobObserver) ObserveWorkflowRunDuration(org, repo, workflowName str
 	}
 }
 
-func (o *TestJobObserver) assertNoWorkflowJobObservation(timeout time.Duration) {
+func (o *TestPrometheusObserver) CountWorkflowRunStatus(org, repo, workflowName, status string) {
+	o.workflowRunStatusCounted <- workflowRunStatusCount{
+		org:          org,
+		repo:         repo,
+		workflowName: workflowName,
+		status:       status,
+	}
+}
+
+func (o *TestPrometheusObserver) assertNoWorkflowJobDurationObservation(timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
-	case <-o.workFlowJobObserved:
+	case <-o.workFlowJobDurationObserved:
 		o.t.Fatal("expected no observation but an observation occurred")
 	}
 }
 
-func (o *TestJobObserver) assetWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
+func (o *TestPrometheusObserver) assetWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")
-	case observed := <-o.workFlowJobObserved:
+	case observed := <-o.workFlowJobDurationObserved:
 		assert.Equal(o.t, expected, observed)
 	}
 }
 
-func (o *TestJobObserver) assetWorkflowRunObservation(expected workflowRunObservation, timeout time.Duration) {
+func (o *TestPrometheusObserver) assertWorkflowJobStatusCount(expected workflowJobStatusCount, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected observation but none occurred")
+	case observed := <-o.workflowJobStatusCounted:
+		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestPrometheusObserver) assetWorkflowRunObservation(expected workflowRunObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")
 	case observed := <-o.workflowRunObserved:
 		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestPrometheusObserver) assertWorkflowRunStatusCount(expected workflowRunStatusCount, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected observation but none occurred")
+	case observed := <-o.workflowRunStatusCounted:
+		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestPrometheusObserver) assertNoWorkflowRunStatusCount(timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+	case <-o.workflowRunObserved:
+		o.t.Fatal("expected no observation but an observation occurred")
 	}
 }

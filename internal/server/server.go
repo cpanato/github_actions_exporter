@@ -21,16 +21,18 @@ type Opts struct {
 	// GitHub webhook token.
 	GitHubToken string
 	// GitHub API token.
-	GitHubAPIToken string
-	GitHubOrg      string
-	GitHubUser     string
+	GitHubAPIToken        string
+	GitHubOrg             string
+	GitHubUser            string
+	BillingAPIPollSeconds int
 }
 
 type Server struct {
-	logger   log.Logger
-	server   *http.Server
-	exporter *GHActionExporter
-	opts     Opts
+	logger                  log.Logger
+	server                  *http.Server
+	workflowMetricsExporter *WorkflowMetricsExporter
+	billingExporter         *BillingMetricsExporter
+	opts                    Opts
 }
 
 func NewServer(logger log.Logger, opts Opts) *Server {
@@ -40,16 +42,27 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		Handler: mux,
 	}
 
-	exporter := NewGHActionExporter(logger, opts)
+	billingExporter := NewBillingMetricsExporter(logger, opts)
+	err := billingExporter.StartOrgBilling(context.TODO())
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
+	}
+	err = billingExporter.StartUserBilling(context.TODO())
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+	}
+
+	workflowExporter := NewWorkflowMetricsExporter(logger, opts)
 	server := &Server{
-		logger:   logger,
-		server:   httpServer,
-		exporter: exporter,
-		opts:     opts,
+		logger:                  logger,
+		server:                  httpServer,
+		workflowMetricsExporter: workflowExporter,
+		billingExporter:         billingExporter,
+		opts:                    opts,
 	}
 
 	mux.Handle(opts.MetricsPath, promhttp.Handler())
-	mux.HandleFunc(opts.WebhookPath, server.exporter.HandleGHWebHook)
+	mux.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
 	mux.HandleFunc("/", server.handleRoot)
 
 	return server

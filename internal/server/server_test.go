@@ -18,13 +18,10 @@ import (
 func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	srv := server.NewServer(logger, server.Opts{
-		MetricsPath:    "/metrics",
-		ListenAddress:  ":8000",
-		WebhookPath:    "/webhook",
-		GitHubToken:    "webhook_token",
-		GitHubUser:     "user",
-		GitHubOrg:      "org",
-		GitHubAPIToken: "api_token",
+		MetricsPath:   "/metrics",
+		ListenAddress: ":8000",
+		WebhookPath:   "/webhook",
+		GitHubToken:   "webhook_token",
 	})
 
 	t.Cleanup(func() {
@@ -53,13 +50,10 @@ func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	srv := server.NewServer(logger, server.Opts{
-		MetricsPath:    "/metrics",
-		ListenAddress:  ":8000",
-		WebhookPath:    "/webhook",
-		GitHubToken:    webhookSecret,
-		GitHubUser:     "user",
-		GitHubOrg:      "org",
-		GitHubAPIToken: "api_token",
+		MetricsPath:   "/metrics",
+		ListenAddress: ":8000",
+		WebhookPath:   "/webhook",
+		GitHubToken:   webhookSecret,
 	})
 
 	t.Cleanup(func() {

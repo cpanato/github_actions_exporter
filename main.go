@@ -18,13 +18,14 @@ import (
 )
 
 var (
-	listenAddress  = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
-	metricsPath    = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
-	ghWebHookPath  = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
-	gitHubToken    = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
-	gitHubAPIToken = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Default("").String()
-	gitHubOrg      = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
-	gitHubUser     = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
+	listenAddress               = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
+	metricsPath                 = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
+	ghWebHookPath               = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
+	githubWebhookToken          = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Default("").String()
+	gitHubAPIToken              = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Default("").String()
+	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
+	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
+	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("5").Int()
 )
 
 func init() {
@@ -42,7 +43,7 @@ func main() {
 	_ = level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
 	_ = level.Info(logger).Log("build_context", version.BuildContext())
 
-	if err := validateFlags(*gitHubAPIToken, *gitHubToken, *gitHubOrg, *gitHubUser); err != nil {
+	if err := validateFlags(*githubWebhookToken); err != nil {
 		_ = level.Error(logger).Log("msg", "Missing configure flags", "err", err)
 		os.Exit(1)
 	}
@@ -51,13 +52,14 @@ func main() {
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	srv := server.NewServer(logger, server.Opts{
-		WebhookPath:    *ghWebHookPath,
-		ListenAddress:  *listenAddress,
-		MetricsPath:    *metricsPath,
-		GitHubToken:    *gitHubToken,
-		GitHubAPIToken: *gitHubAPIToken,
-		GitHubUser:     *gitHubUser,
-		GitHubOrg:      *gitHubOrg,
+		WebhookPath:           *ghWebHookPath,
+		ListenAddress:         *listenAddress,
+		MetricsPath:           *metricsPath,
+		GitHubToken:           *githubWebhookToken,
+		GitHubAPIToken:        *gitHubAPIToken,
+		GitHubUser:            *gitHubUser,
+		GitHubOrg:             *gitHubOrg,
+		BillingAPIPollSeconds: *gitHubBillingPollingSeconds,
 	})
 	go func() {
 		err := srv.Serve(context.Background())
@@ -77,19 +79,9 @@ func main() {
 	os.Exit(0)
 }
 
-func validateFlags(apiToken, token, org, user string) error {
+func validateFlags(token string) error {
 	if token == "" {
 		return errors.New("Please configure the GitHub Webhook Token")
 	}
-
-	if apiToken == "" {
-		return errors.New("Please configure the GitHub API Token")
-	}
-
-	if org == "" && user == "" {
-		fmt.Print(org, user)
-		return errors.New("Please configure the GitHub Organization or GitHub User ")
-	}
-
 	return nil
 }
