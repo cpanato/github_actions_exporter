@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/go-kit/kit v0.12.0
 	github.com/google/go-github/v43 v43.0.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/common v0.34.0
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
