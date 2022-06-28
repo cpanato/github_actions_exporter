@@ -7,7 +7,7 @@ require (
 	github.com/google/go-github/v43 v43.0.0
 	github.com/prometheus/client_golang v1.12.2
 	github.com/prometheus/common v0.35.0
-	github.com/stretchr/testify v1.7.3
+	github.com/stretchr/testify v1.7.5
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 )
