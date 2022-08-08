@@ -69,6 +69,18 @@ docker run -d -p 9101:9101 ghcr.io/cpanato/github_actions_exporter-linux-amd64:v
 make test
 ```
 
+### Manual testing
+
+```bash
+cd example/
+export WEBHOOK_SECRET="..."
+export GITHUB_TOKEN="..."
+export GITHUB_ORG="..."
+docker-compose up --build
+```
+
+Open Prometheus at http://localhost:9090 and explore the available metrics.
+
 ## Contributing
 
 Refer to [CONTRIBUTING.md](https://github.com/cpanato/github_actions_exporter/blob/master/CONTRIBUTING.md).
