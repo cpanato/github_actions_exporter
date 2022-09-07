@@ -499,6 +499,36 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 	observer.assertNoWorkflowRunStatusCount(1 * time.Second)
 }
 
+func Test_WorkflowMetricsExporter_CollectWorkflowJobEvent_WorkflowJobQueuedEvent_WithNoSteps(t *testing.T) {
+	// Given
+	subject := server.WorkflowMetricsExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	jobStartedAt := time.Unix(1650308740, 0)
+	runnerGroupName := "runner-group"
+	action := "in_progress"
+
+	event := github.WorkflowJobEvent{
+		Action: &action,
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		WorkflowJob: &github.WorkflowJob{
+			StartedAt:       &github.Timestamp{Time: jobStartedAt},
+			Steps:           []*github.TaskStep{},
+			RunnerGroupName: &runnerGroupName,
+		},
+	}
+
+	subject.CollectWorkflowJobEvent(&event)
+}
+
 func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
 	b, err := json.Marshal(payload)
 	require.NoError(t, err)
