@@ -104,7 +104,7 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 
 		if len(event.WorkflowJob.Steps) == 0 {
 			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of in_progress event as event has no steps")
-			return
+			break
 		}
 
 		firstStep := event.WorkflowJob.Steps[0]
@@ -113,12 +113,13 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 	case "completed":
 		status = event.GetWorkflowJob().GetConclusion()
 
-		if event.GetWorkflowJob().GetConclusion() != "skipped" {
-			firstStepStarted := event.WorkflowJob.Steps[0].StartedAt.Time
-			lastStepCompleted := event.WorkflowJob.Steps[len(event.WorkflowJob.Steps)-1].CompletedAt.Time
-			jobSeconds := lastStepCompleted.Sub(firstStepStarted).Seconds()
-			c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
+		if event.WorkflowJob.StartedAt == nil || event.WorkflowJob.CompletedAt == nil {
+			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of completed event steps are missing timestamps")
+			break
 		}
+
+		jobSeconds := event.WorkflowJob.GetCompletedAt().Time.Sub(event.WorkflowJob.GetStartedAt().Time).Seconds()
+		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
 	}
 
 	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
