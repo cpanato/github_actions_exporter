@@ -57,6 +57,8 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		return
 	}
 
+	_ = level.Debug(c.Logger).Log("msg", "received webhook", "payload", string(buf))
+
 	eventType := r.Header.Get("X-GitHub-Event")
 	switch eventType {
 	case "ping":
