@@ -12,4 +12,4 @@ test:
 
 .PHONY: build
 build:
-	go build .
+	go build -o github-actions-exporter .
