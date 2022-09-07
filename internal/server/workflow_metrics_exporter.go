@@ -36,7 +36,12 @@ func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsEx
 
 // handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
 func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
-	buf, _ := ioutil.ReadAll(r.Body)
+	buf, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		_ = level.Error(c.Logger).Log("msg", "error reading body: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
 	if receivedHash[0] != "sha1" {
@@ -45,7 +50,7 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		return
 	}
 
-	err := validateSignature(c.Opts.GitHubToken, receivedHash, buf)
+	err = validateSignature(c.Opts.GitHubToken, receivedHash, buf)
 	if err != nil {
 		_ = level.Error(c.Logger).Log("msg", "invalid token", "err", err)
 		w.WriteHeader(http.StatusForbidden)

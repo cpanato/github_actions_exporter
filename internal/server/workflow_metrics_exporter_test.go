@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,12 @@ import (
 const (
 	webhookSecret = "webhook-secret"
 )
+
+type readerThatErrors struct{}
+
+func (readerThatErrors) Read(p []byte) (n int, err error) {
+	return 0, errors.New("test error")
+}
 
 func Test_WorkflowMetricsExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
 	// Given
@@ -66,6 +73,21 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 
 	// Then
 	assert.Equal(t, http.StatusNotImplemented, res.Result().StatusCode)
+}
+
+func Test_GHActionExporter_HandleGHWebHook_HandlesBodyReadError(t *testing.T) {
+	// Given
+	subject := server.WorkflowMetricsExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+	}
+	req := httptest.NewRequest("POST", "/anything", readerThatErrors{})
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusInternalServerError, res.Result().StatusCode)
 }
 
 func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
