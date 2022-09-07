@@ -18,3 +18,4 @@ github_actions_exporter
 # VSCode
 .vscode/
 dist/
+.idea/
