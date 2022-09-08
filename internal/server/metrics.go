@@ -11,9 +11,16 @@ var (
 		[]string{"org", "repo", "state", "runner_group"},
 	)
 
+	workflowJobDurationCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "workflow_job_duration_seconds_total",
+		Help: "The total duration of jobs.",
+	},
+		[]string{"org", "repo", "status", "conclusion", "runner_group"},
+	)
+
 	workflowJobStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "workflow_job_status_count",
-		Help: "Count of the occurrences of different workflow job states.",
+		Help: "Count of workflow job events.",
 	},
 		[]string{"org", "repo", "status", "conclusion", "runner_group"},
 	)
@@ -80,6 +87,7 @@ func init() {
 	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
 	prometheus.MustRegister(workflowJobStatusCounter)
+	prometheus.MustRegister(workflowJobDurationCounter)
 	prometheus.MustRegister(workflowRunHistogramVec)
 	prometheus.MustRegister(workflowRunStatusCounter)
 	prometheus.MustRegister(totalMinutesUsedActions)
@@ -92,9 +100,10 @@ func init() {
 
 type WorkflowObserver interface {
 	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
-	CountWorkflowJobStatus(org, repo, conclusion, status, runnerGroup string)
+	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string)
+	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64)
 	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
-	CountWorkflowRunStatus(org, repo, conclusion, status, workflow string)
+	CountWorkflowRunStatus(org, repo, status, conclusion, workflow string)
 }
 
 var _ WorkflowObserver = (*PrometheusObserver)(nil)
@@ -108,6 +117,10 @@ func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runner
 
 func (o *PrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string) {
 	workflowJobStatusCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup).Inc()
+}
+
+func (o *PrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64) {
+	workflowJobDurationCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup).Add(seconds)
 }
 
 func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {

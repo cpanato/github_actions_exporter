@@ -304,7 +304,6 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 	repo := "some-repo"
 	org := "someone"
 	expectedDuration := 5.0
-
 	startedAt := time.Unix(1650308740, 0)
 	completedAt := startedAt.Add(time.Duration(expectedDuration) * time.Second)
 	runnerGroupName := "runner-group"
@@ -350,57 +349,13 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 		status:      status,
 		conclusion:  conclusion,
 	}, 50*time.Millisecond)
-}
-
-func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEventWithSkippedConclusion(t *testing.T) {
-	// Given
-	observer := NewTestPrometheusObserver(t)
-	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
-		Opts: server.Opts{
-			GitHubToken: webhookSecret,
-		},
-		PrometheusObserver: observer,
-	}
-
-	repo := "some-repo"
-	org := "someone"
-	runnerGroupName := "runner-group"
-	action := "completed"
-	status := "completed"
-	conclusion := "skipped"
-
-	event := github.WorkflowJobEvent{
-		Action: &action,
-		Repo: &github.Repository{
-			Name: &repo,
-			Owner: &github.User{
-				Login: &org,
-			},
-		},
-		WorkflowJob: &github.WorkflowJob{
-			StartedAt:       nil,
-			Status:          &status,
-			Conclusion:      &conclusion,
-			Steps:           []*github.TaskStep{},
-			RunnerGroupName: &runnerGroupName,
-		},
-	}
-	req := testWebhookRequest(t, "/anything", "workflow_job", event)
-
-	// When
-	res := httptest.NewRecorder()
-	subject.HandleGHWebHook(res, req)
-
-	// Then
-	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
-	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+	observer.assertWorkflowJobDurationCount(workflowJobDurationCount{
 		org:         org,
 		repo:        repo,
 		runnerGroup: runnerGroupName,
 		status:      status,
 		conclusion:  conclusion,
+		seconds:     expectedDuration,
 	}, 50*time.Millisecond)
 }
 
@@ -636,6 +591,11 @@ type workflowJobStatusCount struct {
 	org, repo, status, conclusion, runnerGroup string
 }
 
+type workflowJobDurationCount struct {
+	org, repo, status, conclusion, runnerGroup string
+	seconds                                    float64
+}
+
 type workflowRunObservation struct {
 	org, repo, workflowName string
 	seconds                 float64
@@ -651,6 +611,7 @@ type TestPrometheusObserver struct {
 	t                           *testing.T
 	workFlowJobDurationObserved chan workflowJobObservation
 	workflowJobStatusCounted    chan workflowJobStatusCount
+	workflowJobDurationCounted  chan workflowJobDurationCount
 	workflowRunObserved         chan workflowRunObservation
 	workflowRunStatusCounted    chan workflowRunStatusCount
 }
@@ -660,6 +621,7 @@ func NewTestPrometheusObserver(t *testing.T) *TestPrometheusObserver {
 		t:                           t,
 		workFlowJobDurationObserved: make(chan workflowJobObservation, 1),
 		workflowJobStatusCounted:    make(chan workflowJobStatusCount, 1),
+		workflowJobDurationCounted:  make(chan workflowJobDurationCount, 1),
 		workflowRunObserved:         make(chan workflowRunObservation, 1),
 		workflowRunStatusCounted:    make(chan workflowRunStatusCount, 1),
 	}
@@ -682,6 +644,17 @@ func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, status, concl
 		status:      status,
 		conclusion:  conclusion,
 		runnerGroup: runnerGroup,
+	}
+}
+
+func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64) {
+	o.workflowJobDurationCounted <- workflowJobDurationCount{
+		org:         org,
+		repo:        repo,
+		status:      status,
+		conclusion:  conclusion,
+		runnerGroup: runnerGroup,
+		seconds:     seconds,
 	}
 }
 
@@ -726,6 +699,15 @@ func (o *TestPrometheusObserver) assertWorkflowJobStatusCount(expected workflowJ
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")
 	case observed := <-o.workflowJobStatusCounted:
+		assert.Equal(o.t, expected, observed)
+	}
+}
+
+func (o *TestPrometheusObserver) assertWorkflowJobDurationCount(expected workflowJobDurationCount, timeout time.Duration) {
+	select {
+	case <-time.After(timeout):
+		o.t.Fatal("expected observation but none occurred")
+	case observed := <-o.workflowJobDurationCounted:
 		assert.Equal(o.t, expected, observed)
 	}
 }

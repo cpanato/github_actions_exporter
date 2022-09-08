@@ -42,6 +42,7 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer r.Body.Close()
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
 	if receivedHash[0] != "sha1" {
@@ -93,7 +94,10 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
+
 	action := event.GetAction()
+	conclusion := event.GetWorkflowJob().GetConclusion()
+	status := event.GetWorkflowJob().GetStatus()
 
 	switch action {
 	case "queued":
@@ -114,12 +118,11 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 			break
 		}
 
-		jobSeconds := event.WorkflowJob.GetCompletedAt().Time.Sub(event.WorkflowJob.GetStartedAt().Time).Seconds()
-		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
+		jobSeconds := math.Max(0, event.WorkflowJob.GetCompletedAt().Time.Sub(event.WorkflowJob.GetStartedAt().Time).Seconds())
+		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, jobSeconds)
+		c.PrometheusObserver.CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, jobSeconds)
 	}
 
-	conclusion := event.GetWorkflowJob().GetConclusion()
-	status := event.GetWorkflowJob().GetStatus()
 	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup)
 }
 
