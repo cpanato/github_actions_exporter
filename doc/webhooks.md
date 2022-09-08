@@ -1,5 +1,11 @@
 ## GitHub Webhooks
 
+## [Workflow Run](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_run)
+
+* Webhook field `action` is `requested` or `completed`.
+  * `requested` has `status=queued` and `conclusion=null`.
+  * `completed` can be `failure`, `success`, `cancelled`.
+
 ## [Workflow Job](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#workflow_job)
 
 * Webhook field `action` and `workflow_job[status]` are equal in webhook payloads and include `queued`, `in_progress`, `completed`

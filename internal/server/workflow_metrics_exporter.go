@@ -95,12 +95,10 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 	runnerGroup := event.WorkflowJob.GetRunnerGroupName()
 	action := event.GetAction()
 
-	var status string
 	switch action {
 	case "queued":
-		status = "queued"
+		// Do nothing.
 	case "in_progress":
-		status = "in_progress"
 
 		if len(event.WorkflowJob.Steps) == 0 {
 			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of in_progress event as event has no steps")
@@ -111,8 +109,6 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 		queuedSeconds := firstStep.StartedAt.Time.Sub(event.WorkflowJob.StartedAt.Time).Seconds()
 		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, math.Max(0, queuedSeconds))
 	case "completed":
-		status = event.GetWorkflowJob().GetConclusion()
-
 		if event.WorkflowJob.StartedAt == nil || event.WorkflowJob.CompletedAt == nil {
 			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of completed event steps are missing timestamps")
 			break
@@ -122,22 +118,24 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, math.Max(0, jobSeconds))
 	}
 
-	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, runnerGroup)
+	conclusion := event.GetWorkflowJob().GetConclusion()
+	status := event.GetWorkflowJob().GetStatus()
+	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup)
 }
 
 func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
-	if event.GetAction() != "completed" {
-		return
-	}
-
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	workflowName := event.GetWorkflow().GetName()
-	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
-	c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+
+	if event.GetAction() == "completed" {
+		seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
+		c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+	}
 
 	status := event.GetWorkflowRun().GetStatus()
-	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, workflowName, status)
+	conclusion := event.GetWorkflowRun().GetConclusion()
+	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName)
 }
 
 // validateSignature validate the incoming github event.
