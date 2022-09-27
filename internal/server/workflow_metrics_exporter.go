@@ -7,14 +7,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"strings"
 
 	"github.com/cpanato/github_actions_exporter/model"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/google/go-github/v47/github"
 )
 
@@ -36,7 +36,7 @@ func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsEx
 
 // handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
 func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
-	buf, err := ioutil.ReadAll(r.Body)
+	buf, err := io.ReadAll(r.Body)
 	if err != nil {
 		_ = level.Error(c.Logger).Log("msg", "error reading body: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -63,7 +63,7 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 	eventType := r.Header.Get("X-GitHub-Event")
 	switch eventType {
 	case "ping":
-		pingEvent := model.PingEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		pingEvent := model.PingEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		if pingEvent == nil {
 			_ = level.Info(c.Logger).Log("msg", "ping event", "hookID", pingEvent.GetHookID())
 			w.WriteHeader(http.StatusBadRequest)
@@ -73,11 +73,11 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		_, _ = w.Write([]byte(`{"status": "honk"}`))
 		return
 	case "workflow_job":
-		event := model.WorkflowJobEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		event := model.WorkflowJobEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "runId", event.GetWorkflowJob().GetRunID(), "action", event.GetAction())
 		go c.CollectWorkflowJobEvent(event)
 	case "workflow_run":
-		event := model.WorkflowRunEventFromJSON(ioutil.NopCloser(bytes.NewBuffer(buf)))
+		event := model.WorkflowRunEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		_ = level.Info(c.Logger).Log("msg", "got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
 		go c.CollectWorkflowRunEvent(event)
 	default:

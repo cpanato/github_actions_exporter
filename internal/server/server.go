@@ -7,9 +7,10 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 )
@@ -39,7 +40,8 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 	mux := http.NewServeMux()
 
 	httpServer := &http.Server{
-		Handler: mux,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	billingExporter := NewBillingMetricsExporter(logger, opts)

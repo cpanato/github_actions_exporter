@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/google/go-github/v47/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -694,7 +694,7 @@ func (o *TestPrometheusObserver) assetWorkflowJobObservation(expected workflowJo
 	}
 }
 
-func (o *TestPrometheusObserver) assertWorkflowJobStatusCount(expected workflowJobStatusCount, timeout time.Duration) {
+func (o *TestPrometheusObserver) assertWorkflowJobStatusCount(expected workflowJobStatusCount, timeout time.Duration) { //nolint: unparam
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")

@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
@@ -81,7 +81,7 @@ func main() {
 
 func validateFlags(token string) error {
 	if token == "" {
-		return errors.New("Please configure the GitHub Webhook Token")
+		return errors.New("please configure the GitHub Webhook Token")
 	}
 	return nil
 }
