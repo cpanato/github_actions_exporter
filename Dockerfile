@@ -1,7 +1,7 @@
 FROM cgr.dev/chainguard/static:latest
 
-COPY github-actions-exporter /bin/github-actions-exporter
+COPY github-actions-exporter /github-actions-exporter
 
 USER nobody
-ENTRYPOINT ["/bin/github-actions-exporter"]
+ENTRYPOINT ["/github-actions-exporter"]
 EXPOSE     9101
