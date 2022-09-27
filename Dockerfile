@@ -1,4 +1,4 @@
-FROM ghcr.io/distroless/busybox:latest
+FROM cgr.dev/chainguard/static:latest
 
 COPY github-actions-exporter /bin/github-actions-exporter
 

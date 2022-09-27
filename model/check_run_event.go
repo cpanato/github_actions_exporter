@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/google/go-github/v43/github"
+	"github.com/google/go-github/v47/github"
 )
 
 // CheckRunEventFromJSON decodes the incomming message to a github.CheckRunEvent

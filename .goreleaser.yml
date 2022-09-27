@@ -114,4 +114,4 @@ release:
     owner: cpanato
     name: github_actions_exporter
   draft: false
-  prerelease: true
+  prerelease: allow

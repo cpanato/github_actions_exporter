@@ -22,11 +22,11 @@ jobs:
     steps:
     - uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f # v3.0.0
       with:
-        go-version: 1.18
+        go-version: 1.19
         check-latest: true
 
-    - name: Install cosign
-      uses: sigstore/cosign-installer@ced07f21fb1da67979f539bbc6304c16c0677e76 # v2.2.1
+    - uses: sigstore/cosign-installer@ced07f21fb1da67979f539bbc6304c16c0677e76 # v2.7.0
+    - uses: anchore/sbom-action/download-syft@b5042e9d19d8b32849779bfe17673ff84aec702d # v0.11.0
 
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@ff11ca24a9b39f2d36796d1fbd7a4e39c182630a # v2.9.1

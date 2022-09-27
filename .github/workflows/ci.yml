@@ -12,7 +12,7 @@ jobs:
     - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3.0.0
     - uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f # v3.0.0
       with:
-        go-version: 1.18
+        go-version: 1.19
         check-latest: true
 
     - name: Tests
@@ -28,11 +28,10 @@ jobs:
       - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v2.4.0
       - uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f # v2.2.0
         with:
-          go-version: 1.18
+          go-version: 1.19
           check-latest: true
       - name: golangci-lint
         uses: golangci/golangci-lint-action@537aa1903e5d359d0b27dbc19ddd22c5087f3fbc # v3
         timeout-minutes: 5
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.45.2
+          version: latest
