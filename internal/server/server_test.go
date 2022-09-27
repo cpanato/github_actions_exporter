@@ -72,11 +72,11 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	org := "someone"
 	expectedDuration := 10.0
 	jobStartedAt := time.Unix(1650308740, 0)
-	stepStartedAt := jobStartedAt.Add(time.Duration(expectedDuration) * time.Second)
+	completedAt := jobStartedAt.Add(time.Duration(expectedDuration) * time.Second)
 	runnerGroupName := "runner-group"
 
 	event := github.WorkflowJobEvent{
-		Action: github.String("in_progress"),
+		Action: github.String("completed"),
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -84,12 +84,10 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 			},
 		},
 		WorkflowJob: &github.WorkflowJob{
-			StartedAt: &github.Timestamp{Time: jobStartedAt},
-			Steps: []*github.TaskStep{
-				{
-					StartedAt: &github.Timestamp{Time: stepStartedAt},
-				},
-			},
+			Status:          github.String("completed"),
+			Conclusion:      github.String("success"),
+			StartedAt:       &github.Timestamp{Time: jobStartedAt},
+			CompletedAt:     &github.Timestamp{Time: completedAt},
 			RunnerGroupName: &runnerGroupName,
 		},
 	}
@@ -109,5 +107,6 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 
 	payload, err := ioutil.ReadAll(metricsRes.Body)
 	require.NoError(t, err)
-	assert.Contains(t, string(payload), `workflow_job_duration_seconds_bucket{org="someone",repo="some-repo",runner_group="runner-group",state="queued",le="10.541350399999995"} 1`)
+	assert.Contains(t, string(payload), `workflow_job_duration_seconds_bucket{org="someone",repo="some-repo",runner_group="runner-group",state="in_progress",le="10.541350399999995"} 1`)
+	assert.Contains(t, string(payload), `workflow_job_duration_seconds_total{conclusion="success",org="someone",repo="some-repo",runner_group="runner-group",status="completed"} 10`)
 }
