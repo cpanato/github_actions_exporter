@@ -3,7 +3,7 @@ module github.com/cpanato/github_actions_exporter
 go 1.19
 
 require (
-	github.com/go-kit/log v0.2.0
+	github.com/go-kit/log v0.2.1
 	github.com/google/go-github/v47 v47.1.0
 	github.com/prometheus/client_golang v1.13.0
 	github.com/prometheus/common v0.37.0
