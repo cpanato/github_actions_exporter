@@ -34,7 +34,7 @@ jobs:
         install-only: true
 
     - name: Log into ghcr.io
-      uses: docker/login-action@49ed152c8eca782a232dede0303416e8f356c37b # v1.14.1
+      uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v1.14.1
       with:
         registry: ghcr.io
         username: ${{ github.repository_owner }}
