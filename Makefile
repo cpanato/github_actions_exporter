@@ -17,7 +17,7 @@ build:
 .PHONY: publish
 publish:
 	@echo "==> Building docker image..."
-	docker build . -t $(DOCKER_IMG):$(DOCKER_TAG) .
+	docker build . -t $(DOCKER_IMG):$(DOCKER_TAG)
 	@echo "==> Logging in to the docker registry..."
 	echo "$(DOCKER_PASSWORD)" | docker login -u "$(DOCKER_USERNAME)" --password-stdin
 	@echo "==> Pushing built image..."
