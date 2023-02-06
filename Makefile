@@ -15,7 +15,7 @@ build:
 	CGO_ENABLED=0 go build -o github-actions-exporter .
 
 .PHONY: publish
-publish:
+publish: build
 	@echo "==> Building docker image..."
 	docker build . -t $(DOCKER_IMG):$(DOCKER_TAG)
 	@echo "==> Logging in to the docker registry..."
