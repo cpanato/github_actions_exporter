@@ -8,7 +8,22 @@ var (
 		Help:    "Time that a workflow job took to reach a given state.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
 	},
-		[]string{"org", "repo", "state", "runner_group"},
+		[]string{"org", "repo", "runner_group"},
+	)
+
+	workflowJobQueueTimeHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "workflow_job_queue_seconds",
+		Help: "Time that a workflow job spent in a queued state.",
+		// The buckets have been selected with the following assumptions:
+		// 1. 10min is the GitHub SLO for larger runners, so we want to measure this accurately by having a 10min bucket.
+		// 2. 5min is the GitHub SLO for hosted runners, so for the same reason we have a 5min bucket.
+		// 3. In case of a longer queue time we have some buckets to capture it, but we don't need as much accuracy.
+		// 4. In normal circumstances, queue times for hosted runners are often < 10s,
+		// so we have more accuracy at lower queue times to measure it.
+		// 5. Buckets are added between the thresholds to ensure the margin of error is lower.
+		Buckets: []float64{2, 4, 6, 8, 10, 20, 30, 40, 50, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 900, 1200},
+	},
+		[]string{"org", "repo", "runner_group"},
 	)
 
 	workflowJobDurationCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -86,6 +101,7 @@ var (
 func init() {
 	// Register metrics with prometheus
 	prometheus.MustRegister(workflowJobHistogramVec)
+	prometheus.MustRegister(workflowJobQueueTimeHistogram)
 	prometheus.MustRegister(workflowJobStatusCounter)
 	prometheus.MustRegister(workflowJobDurationCounter)
 	prometheus.MustRegister(workflowRunHistogramVec)
@@ -99,7 +115,8 @@ func init() {
 }
 
 type WorkflowObserver interface {
-	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
+	ObserveWorkflowJobDuration(org, repo, runnerGroup string, seconds float64)
+	ObserveWorkflowJobQueueTime(org string, repo string, runnerGroup string, seconds float64)
 	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string)
 	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64)
 	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
@@ -110,9 +127,12 @@ var _ WorkflowObserver = (*PrometheusObserver)(nil)
 
 type PrometheusObserver struct{}
 
-func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
-	workflowJobHistogramVec.WithLabelValues(org, repo, state, runnerGroup).
-		Observe(seconds)
+func (o *PrometheusObserver) ObserveWorkflowJobQueueTime(org string, repo string, runnerGroup string, seconds float64) {
+	workflowJobQueueTimeHistogram.WithLabelValues(org, repo, runnerGroup).Observe(seconds)
+}
+
+func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, runnerGroup string, seconds float64) {
+	workflowJobHistogramVec.WithLabelValues(org, repo, runnerGroup).Observe(seconds)
 }
 
 func (o *PrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string) {

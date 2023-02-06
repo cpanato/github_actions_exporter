@@ -2,18 +2,15 @@ package model
 
 import (
 	"encoding/json"
-	"io"
-
 	"github.com/google/go-github/v47/github"
 )
 
 // PingEventFromJSON decodes the incomming message to a github.PingEvent
-func PingEventFromJSON(data io.Reader) *github.PingEvent {
-	decoder := json.NewDecoder(data)
+func PingEventFromJSON(jsonData []byte) (*github.PingEvent, error) {
 	var event github.PingEvent
-	if err := decoder.Decode(&event); err != nil {
-		return nil
+	err := json.Unmarshal(jsonData, &event)
+	if err != nil {
+		return nil, err
 	}
-
-	return &event
+	return &event, nil
 }

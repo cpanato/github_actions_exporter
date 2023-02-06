@@ -2,16 +2,14 @@ package model
 
 import (
 	"encoding/json"
-	"io"
-
 	"github.com/google/go-github/v47/github"
 )
 
-func WorkflowRunEventFromJSON(data io.Reader) *github.WorkflowRunEvent {
-	decoder := json.NewDecoder(data)
+func WorkflowRunEventFromJSON(jsonData []byte) (*github.WorkflowRunEvent, error) {
 	var event github.WorkflowRunEvent
-	if err := decoder.Decode(&event); err != nil {
-		return nil
+	err := json.Unmarshal(jsonData, &event)
+	if err != nil {
+		return nil, err
 	}
-	return &event
+	return &event, nil
 }
