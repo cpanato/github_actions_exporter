@@ -50,7 +50,8 @@ signs:
     cmd: cosign
     args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
     artifacts: binary
-  - signature: "${artifact}.sig"
+  - id: checksum-sign
+    signature: "${artifact}.sig"
     certificate: "${artifact}.pem"
     cmd: cosign
     args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
