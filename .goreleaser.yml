@@ -2,7 +2,7 @@ project_name: github_actions_exporter
 
 env:
   - DOCKER_CLI_EXPERIMENTAL=enabled
-  - COSIGN_EXPERIMENTAL=true
+  - COSIGN_YES=true
 
 gomod:
   proxy: true
