@@ -4,6 +4,12 @@ env:
   - DOCKER_CLI_EXPERIMENTAL=enabled
   - COSIGN_YES=true
 
+# Prevents parallel builds from stepping on each others toes downloading modules
+before:
+  hooks:
+    - go mod tidy
+    - /bin/bash -c 'if [ -n "$(git --no-pager diff --exit-code go.mod go.sum)" ]; then exit 1; fi'
+
 gomod:
   proxy: true
 

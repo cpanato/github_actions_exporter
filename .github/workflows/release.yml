@@ -20,8 +20,6 @@ jobs:
       contents: write
 
     env:
-      GOPATH: ${{ github.workspace }}
-      GO111MODULE: on
       COSIGN_YES: "true"
 
     steps:
@@ -42,8 +40,6 @@ jobs:
 
       - name: Check out code onto GOPATH
         uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
-        with:
-          fetch-depth: 1
 
       - name: Set tag output
         id: get_tag
