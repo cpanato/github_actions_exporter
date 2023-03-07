@@ -59,7 +59,7 @@ kos:
     platforms:
       - all
     tags:
-      - '{{ .Version }}'
+      - 'v{{ .Version }}'
     sbom: spdx
     build: binary
     bare: true
