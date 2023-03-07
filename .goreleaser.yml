@@ -11,7 +11,8 @@ snapshot:
   name_template: '{{ .Tag }}-SNAPSHOT'
 
 builds:
-  - binary: github-actions-exporter
+  - id: binary
+    binary: github-actions-exporter
     goos:
       - linux
       - darwin
@@ -24,11 +25,11 @@ builds:
     goarm:
       - 7
     ldflags: |
-        -X github.com/prometheus/common/version.Version={{.Version}}
-        -X github.com/prometheus/common/version.Revision={{.Commit}}
-        -X github.com/prometheus/common/version.Branch={{.Branch}}
-        -X github.com/prometheus/common/version.BuildUser=cpanato
-        -X github.com/prometheus/common/version.BuildDate={{.Date}}
+      -X github.com/prometheus/common/version.Version={{.Version}}
+      -X github.com/prometheus/common/version.Revision={{.Commit}}
+      -X github.com/prometheus/common/version.Branch={{.Branch}}
+      -X github.com/prometheus/common/version.BuildUser=cpanato
+      -X github.com/prometheus/common/version.BuildDate={{.Date}}
 
 archives:
   - format: binary
@@ -44,70 +45,24 @@ signs:
     args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
     artifacts: binary
 
-dockers:
-  - image_templates:
-      - "ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-amd64"
-    use: buildx
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.source=https://github.com/cpanato/{{ .ProjectName }}
-  - image_templates:
-      - "ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-arm64"
-    use: buildx
-    goarch: arm64
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.source=https://github.com/cpanato/{{ .ProjectName }}
-  - image_templates:
-      - "ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-arm"
-    use: buildx
-    goarch: arm
-    goarm: 7
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.source=https://github.com/cpanato/{{ .ProjectName }}
-  - image_templates:
-      - "ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-s390x"
-    use: buildx
-    goarch: s390x
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/s390x"
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.source=https://github.com/cpanato/{{ .ProjectName }}
-  - image_templates:
-      - "ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-ppc64le"
-    use: buildx
-    goarch: ppc64le
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/ppc64le"
-      - --label=org.opencontainers.image.version={{ .Version }}
-      - --label=org.opencontainers.image.title={{ .ProjectName }}
-      - --label=org.opencontainers.image.source=https://github.com/cpanato/{{ .ProjectName }}
-
-docker_manifests:
-  - name_template: ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}
-    image_templates:
-      - ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-amd64
-      - ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-arm64
-      - ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-arm
-      - ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-s390x
-      - ghcr.io/cpanato/{{ .ProjectName }}:{{ .Version }}-ppc64le
+kos:
+  - id: ko-image
+    main: .
+    base_image: cgr.dev/chainguard/static
+    repository: ghcr.io/cpanato/{{ .ProjectName }}
+    platforms:
+      - all
+    tags:
+      - '{{ .Version }}'
+    sbom: spdx
+    build: binary
+    bare: true
+    preserve_import_paths: false
+    base_import_paths: true
 
 docker_signs:
   - artifacts: all
-    args: [ "sign", "${artifact}" ]
+    args: ["sign", "${artifact}"]
 
 release:
   github:
