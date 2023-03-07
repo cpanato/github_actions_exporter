@@ -69,6 +69,8 @@ jobs:
         run: |
           DIGEST=$(crane digest ghcr.io/cpanato/github_actions_exporter:${{ steps.get_tag.outputs.TAG }})
           cosign sign "ghcr.io/cpanato/github_actions_exporter@${DIGEST}"
+        env:
+          COSIGN_YES: "true"
 
   provenance:
     needs:
