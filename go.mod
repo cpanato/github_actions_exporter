@@ -1,11 +1,11 @@
 module github.com/cpanato/github_actions_exporter
 
-go 1.19
+go 1.20
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.3.1
 	github.com/go-kit/log v0.2.1
-	github.com/google/go-github/v47 v47.1.0
+	github.com/google/go-github/v50 v50.1.0
 	github.com/prometheus/client_golang v1.14.0
 	github.com/prometheus/common v0.41.0
 	github.com/stretchr/testify v1.8.2
@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/xhit/go-str2duration v1.2.0 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
