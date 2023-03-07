@@ -54,7 +54,7 @@ jobs:
           args: release --clean --timeout 120m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GIT_TAG: ${{ steps.get_tag.outputs.TAG }}
+          GIT_TAG: ${{ steps.get_tag.outputs.tag_name }}
 
       - name: Generate subject
         id: hash
@@ -67,7 +67,7 @@ jobs:
 
       - name: sign image
         run: |
-          DIGEST=$(crane digest ghcr.io/cpanato/github_actions_exporter:${{ steps.tag.outputs.tag_name }})
+          DIGEST=$(crane digest ghcr.io/cpanato/github_actions_exporter:${{ steps.get_tag.outputs.tag_name }})
           cosign sign "ghcr.io/cpanato/github_actions_exporter@${DIGEST}"
         env:
           COSIGN_YES: "true"
