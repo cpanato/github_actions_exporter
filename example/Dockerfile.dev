@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine as builder
+FROM cgr.dev/chainguard/go:1.20 as builder
 
 ARG GOARCH="amd64"
 ARG GOOS="linux"
@@ -8,7 +8,7 @@ COPY . .
 
 RUN go build -o github-actions-exporter .
 
-FROM ghcr.io/distroless/busybox:latest
+FROM cgr.dev/chainguard/static:latest
 
 COPY --from=builder /code/github-actions-exporter /bin/github-actions-exporter
 
