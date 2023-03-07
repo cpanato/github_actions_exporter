@@ -55,7 +55,7 @@ kos:
   - id: ko-image
     main: .
     base_image: cgr.dev/chainguard/static
-    repository: ghcr.io/cpanato/github_actions_exporter
+    repository: ghcr.io/cpanato
     platforms:
       - all
     tags:
@@ -65,10 +65,6 @@ kos:
     bare: true
     preserve_import_paths: false
     base_import_paths: true
-
-docker_signs:
-  - artifacts: all
-    args: ["sign", "${artifact}"]
 
 release:
   github:

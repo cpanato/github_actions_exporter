@@ -30,6 +30,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@c3667d99424e7e6047999fb6246c0da843953c65 # v3.0.1
       - uses: anchore/sbom-action/download-syft@07978da4bdb4faa726e52dfc6b1bed63d4b56479 # v0.13.3
+      - uses: imjasonh/setup-crane@00c9e93efa4e1138c9a7a5c594acd6c75a2fbf0c # v0.3
 
       - name: Log into ghcr.io
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # v2.1.0
@@ -63,6 +64,11 @@ jobs:
           set -euo pipefail
           checksum_file=$(echo "$ARTIFACTS" | jq -r '.[] | select (.type=="Checksum") | .path')
           echo "hashes=$(cat $checksum_file | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: sign image
+        run: |
+          DIGEST=$(crane digest ghcr.io/cpanato/github_actions_exporter:${{ steps.get_tag.outputs.TAG }})
+          cosign sign "ghcr.io/cpanato/github_actions_exporter@${DIGEST}"
 
   provenance:
     needs:
