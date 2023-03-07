@@ -55,7 +55,7 @@ kos:
   - id: ko-image
     main: .
     base_image: cgr.dev/chainguard/static
-    repository: ghcr.io/cpanato/{{ .ProjectName }}
+    repository: ghcr.io/cpanato/github_actions_exporter
     platforms:
       - all
     tags:
