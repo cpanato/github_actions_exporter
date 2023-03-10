@@ -109,7 +109,7 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 			RunnerGroupName: &runnerGroupName,
 		},
 	}
-	req := testWebhookRequest(t, "http://localhost:8000/webhook", "workflow_job", event)
+	req := testWebhookRequest(t, "http://localhost:8001/webhook", "workflow_job", event)
 	res, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
