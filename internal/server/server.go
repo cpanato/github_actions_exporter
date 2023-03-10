@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -93,11 +92,7 @@ func (s *Server) Serve(ctx context.Context) error {
 
 	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Metrics has successfully started")
 	go func() {
-		err = s.serverMetrics.Serve(listenerMetrics)
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			_ = level.Error(s.logger).Log("msg", fmt.Sprintf("server metrics closed: %v", err))
-			os.Exit(1)
-		}
+		_ = s.serverMetrics.Serve(listenerMetrics)
 	}()
 
 	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Ingress has successfully started")

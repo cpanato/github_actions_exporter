@@ -46,6 +46,22 @@ func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 	payload, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	assert.NotNil(t, payload)
+
+	res, err = http.Get("http://localhost:8000")
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, 404, res.StatusCode)
+
+	res, err = http.Get("http://localhost:8001")
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, 200, res.StatusCode)
+
+	payload, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.NotNil(t, payload)
 }
 
 func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
