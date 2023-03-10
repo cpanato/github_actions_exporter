@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -16,9 +17,10 @@ import (
 )
 
 type Opts struct {
-	MetricsPath   string
-	ListenAddress string
-	WebhookPath   string
+	MetricsPath          string
+	ListenAddressMetrics string
+	ListenAddressIngress string
+	WebhookPath          string
 	// GitHub webhook token.
 	GitHubToken string
 	// GitHub API token.
@@ -30,17 +32,17 @@ type Opts struct {
 
 type Server struct {
 	logger                  log.Logger
-	server                  *http.Server
+	serverMetrics           *http.Server
+	serverIngress           *http.Server
 	workflowMetricsExporter *WorkflowMetricsExporter
 	billingExporter         *BillingMetricsExporter
 	opts                    Opts
 }
 
 func NewServer(logger log.Logger, opts Opts) *Server {
-	mux := http.NewServeMux()
-
-	httpServer := &http.Server{
-		Handler:           mux,
+	muxMetrics := http.NewServeMux()
+	httpServerMetrics := &http.Server{
+		Handler:           muxMetrics,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
@@ -54,39 +56,71 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
 	}
 
+	muxIngress := http.NewServeMux()
+	httpServerIngress := &http.Server{
+		Handler:           muxIngress,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+
 	workflowExporter := NewWorkflowMetricsExporter(logger, opts)
 	server := &Server{
 		logger:                  logger,
-		server:                  httpServer,
+		serverMetrics:           httpServerMetrics,
+		serverIngress:           httpServerIngress,
 		workflowMetricsExporter: workflowExporter,
 		billingExporter:         billingExporter,
 		opts:                    opts,
 	}
 
-	mux.Handle(opts.MetricsPath, promhttp.Handler())
-	mux.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
-	mux.HandleFunc("/", server.handleRoot)
+	muxMetrics.Handle(opts.MetricsPath, promhttp.Handler())
+	muxMetrics.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
+
+	muxIngress.HandleFunc("/", server.handleRoot)
 
 	return server
 }
 
 func (s *Server) Serve(ctx context.Context) error {
-	listener, err := getListener(s.opts.ListenAddress, s.logger)
+	listenerMetrics, err := getListener(s.opts.ListenAddressMetrics, s.logger)
 	if err != nil {
 		return fmt.Errorf("get listener: %w", err)
 	}
 
-	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter has successfully started")
-	err = s.server.Serve(listener)
-
-	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("server closed: %w", err)
+	listenerIgress, err := getListener(s.opts.ListenAddressIngress, s.logger)
+	if err != nil {
+		return fmt.Errorf("get listener: %w", err)
 	}
+
+	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Metrics has successfully started")
+	go func() {
+		err = s.serverMetrics.Serve(listenerMetrics)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			_ = level.Error(s.logger).Log("msg", fmt.Sprintf("server metrics closed: %v", err))
+			os.Exit(1)
+		}
+	}()
+
+	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Ingress has successfully started")
+	err = s.serverIngress.Serve(listenerIgress)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("server ingress closed: %w", err)
+	}
+
 	return nil
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
+	err := s.serverMetrics.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = s.serverIngress.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
@@ -95,7 +129,6 @@ func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
 		<body>
 		<h1>GitHub Actions Exporter</h1>
 		<p> ` + version.Print("ghactions_exporter") + `  </p>
-		<p><a href='` + s.opts.MetricsPath + `'>Metrics</a></p>
 		</body>
 		</html>
 	`))

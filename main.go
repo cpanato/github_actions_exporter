@@ -18,7 +18,8 @@ import (
 )
 
 var (
-	listenAddress               = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
+	listenAddressMetrics        = kingpin.Flag("web.listen-address", "Address to listen on for web interface and telemetry.").Default(":9101").String()
+	listenAddressIngress        = kingpin.Flag("web.listen-address-ingress", "Address to listen on for web interface and telemetry.").Default(":8065").String()
 	metricsPath                 = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	ghWebHookPath               = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
 	githubWebhookToken          = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Envar("GITHUB_WEBHOOK_TOKEN").Default("").String()
@@ -53,7 +54,8 @@ func main() {
 
 	srv := server.NewServer(logger, server.Opts{
 		WebhookPath:           *ghWebHookPath,
-		ListenAddress:         *listenAddress,
+		ListenAddressMetrics:  *listenAddressMetrics,
+		ListenAddressIngress:  *listenAddressIngress,
 		MetricsPath:           *metricsPath,
 		GitHubToken:           *githubWebhookToken,
 		GitHubAPIToken:        *gitHubAPIToken,
