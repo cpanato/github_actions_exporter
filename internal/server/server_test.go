@@ -18,10 +18,11 @@ import (
 func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	srv := server.NewServer(logger, server.Opts{
-		MetricsPath:   "/metrics",
-		ListenAddress: ":8000",
-		WebhookPath:   "/webhook",
-		GitHubToken:   "webhook_token",
+		MetricsPath:          "/metrics",
+		ListenAddressMetrics: ":8000",
+		ListenAddressIngress: ":8001",
+		WebhookPath:          "/webhook",
+		GitHubToken:          "webhook_token",
 	})
 
 	t.Cleanup(func() {
@@ -45,15 +46,32 @@ func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 	payload, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	assert.NotNil(t, payload)
+
+	res, err = http.Get("http://localhost:8000")
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, 404, res.StatusCode)
+
+	res, err = http.Get("http://localhost:8001")
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	assert.Equal(t, 200, res.StatusCode)
+
+	payload, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.NotNil(t, payload)
 }
 
 func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 	srv := server.NewServer(logger, server.Opts{
-		MetricsPath:   "/metrics",
-		ListenAddress: ":8000",
-		WebhookPath:   "/webhook",
-		GitHubToken:   webhookSecret,
+		MetricsPath:          "/metrics",
+		ListenAddressMetrics: ":8000",
+		ListenAddressIngress: ":8001",
+		WebhookPath:          "/webhook",
+		GitHubToken:          webhookSecret,
 	})
 
 	t.Cleanup(func() {
