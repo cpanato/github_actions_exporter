@@ -63,23 +63,30 @@ var (
 
 	totalMinutesUsedUbuntuActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_ubuntu_minutes",
-		Help: "Total minutes used for Ubuntu type for the GitHub Actions.",
+		Help: "Total minutes used for Ubuntu type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
 	)
 
 	totalMinutesUsedMacOSActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_macos_minutes",
-		Help: "Total minutes used for MacOS type for the GitHub Actions.",
+		Help: "Total minutes used for MacOS type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
 	)
 
 	totalMinutesUsedWindowsActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_windows_minutes",
-		Help: "Total minutes used for Windows type for the GitHub Actions.",
+		Help: "Total minutes used for Windows type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
+	)
+
+	totalMinutesUsedByHostTypeActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "actions_total_minutes_used_by_host_minutes",
+		Help: "Total minutes used for a specific host type for the GitHub Actions.",
+	},
+		[]string{"org", "user", "host_type"},
 	)
 )
 
@@ -96,6 +103,7 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedUbuntuActions)
 	prometheus.MustRegister(totalMinutesUsedMacOSActions)
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
+	prometheus.MustRegister(totalMinutesUsedByHostTypeActions)
 }
 
 type WorkflowObserver interface {
