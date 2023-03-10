@@ -72,9 +72,9 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 	}
 
 	muxMetrics.Handle(opts.MetricsPath, promhttp.Handler())
-	muxMetrics.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
 
 	muxIngress.HandleFunc("/", server.handleRoot)
+	muxIngress.HandleFunc(opts.WebhookPath, workflowExporter.HandleGHWebHook)
 
 	return server
 }
