@@ -13,44 +13,45 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
-)
 
-type Opts struct {
-	MetricsPath          string
-	ListenAddressMetrics string
-	ListenAddressIngress string
-	WebhookPath          string
-	// GitHub webhook token.
-	GitHubToken string
-	// GitHub API token.
-	GitHubAPIToken        string
-	GitHubOrg             string
-	GitHubUser            string
-	BillingAPIPollSeconds int
-}
+	"github.com/cpanato/github_actions_exporter/pkg/config"
+	"github.com/cpanato/github_actions_exporter/pkg/metrics"
+)
 
 type Server struct {
 	logger                  log.Logger
 	serverMetrics           *http.Server
 	serverIngress           *http.Server
 	workflowMetricsExporter *WorkflowMetricsExporter
-	billingExporter         *BillingMetricsExporter
-	opts                    Opts
+	billingExporter         *metrics.ExporterClient
+	opts                    config.Opts
 }
 
-func NewServer(logger log.Logger, opts Opts) *Server {
+func NewServer(logger log.Logger, opts config.Opts) *Server {
 	muxMetrics := http.NewServeMux()
 	httpServerMetrics := &http.Server{
 		Handler:           muxMetrics,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	billingExporter := NewBillingMetricsExporter(logger, opts)
-	err := billingExporter.StartOrgBilling(context.TODO())
+	ctx := context.TODO()
+
+	exporterClient := metrics.NewClient(logger, opts)
+	err := exporterClient.StartOrgBilling(ctx)
 	if err != nil {
 		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
 	}
-	err = billingExporter.StartUserBilling(context.TODO())
+	err = exporterClient.StartUserBilling(ctx)
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+	}
+
+	err = exporterClient.StartRunners(ctx)
+	if err != nil {
+		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+	}
+
+	err = exporterClient.StartWorkflowRuns(ctx)
 	if err != nil {
 		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
 	}
@@ -67,7 +68,7 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 		serverMetrics:           httpServerMetrics,
 		serverIngress:           httpServerIngress,
 		workflowMetricsExporter: workflowExporter,
-		billingExporter:         billingExporter,
+		billingExporter:         exporterClient,
 		opts:                    opts,
 	}
 

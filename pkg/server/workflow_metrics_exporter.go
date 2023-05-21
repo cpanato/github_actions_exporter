@@ -12,25 +12,28 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/cpanato/github_actions_exporter/model"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/google/go-github/v50/github"
+
+	"github.com/cpanato/github_actions_exporter/model"
+	"github.com/cpanato/github_actions_exporter/pkg/config"
+	"github.com/cpanato/github_actions_exporter/pkg/metrics"
 )
 
 // WorkflowMetricsExporter struct to hold some information
 type WorkflowMetricsExporter struct {
 	GHClient           *github.Client
 	Logger             log.Logger
-	Opts               Opts
-	PrometheusObserver WorkflowObserver
+	Opts               config.Opts
+	PrometheusObserver metrics.WorkflowObserver
 }
 
-func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {
+func NewWorkflowMetricsExporter(logger log.Logger, opts config.Opts) *WorkflowMetricsExporter {
 	return &WorkflowMetricsExporter{
 		Logger:             logger,
 		Opts:               opts,
-		PrometheusObserver: &PrometheusObserver{},
+		PrometheusObserver: &metrics.PrometheusObserver{},
 	}
 }
 
@@ -127,18 +130,18 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 }
 
 func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
-	repo := event.GetRepo().GetName()
-	org := event.GetRepo().GetOwner().GetLogin()
-	workflowName := event.GetWorkflow().GetName()
+	// repo := event.GetRepo().GetName()
+	// org := event.GetRepo().GetOwner().GetLogin()
+	// workflowName := event.GetWorkflow().GetName()
 
-	if event.GetAction() == "completed" {
-		seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
-		c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
-	}
+	// if event.GetAction() == "completed" {
+	// 	seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
+	// 	// c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+	// }
 
-	status := event.GetWorkflowRun().GetStatus()
-	conclusion := event.GetWorkflowRun().GetConclusion()
-	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName)
+	// status := event.GetWorkflowRun().GetStatus()
+	// conclusion := event.GetWorkflowRun().GetConclusion()
+	// c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName)
 }
 
 // validateSignature validate the incoming github event.

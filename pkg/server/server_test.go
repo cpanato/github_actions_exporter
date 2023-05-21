@@ -1,4 +1,4 @@
-package server_test
+package server
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/log"
 	"github.com/google/go-github/v50/github"
 	"github.com/stretchr/testify/assert"

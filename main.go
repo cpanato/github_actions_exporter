@@ -9,24 +9,26 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
+
+	"github.com/cpanato/github_actions_exporter/pkg/config"
+	"github.com/cpanato/github_actions_exporter/pkg/server"
 )
 
 var (
 	listenAddressMetrics        = kingpin.Flag("web.listen-address", "Address to listen on for metrics.").Default(":9101").String()
-	listenAddressIngress        = kingpin.Flag("web.listen-address-ingress", "Address to listen on for web interface and receive webhook.").Default(":8065").String()
 	metricsPath                 = kingpin.Flag("web.telemetry-path", "Path under which to expose metrics.").Default("/metrics").String()
 	ghWebHookPath               = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
 	githubWebhookToken          = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Envar("GITHUB_WEBHOOK_TOKEN").Default("").String()
 	gitHubAPIToken              = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Envar("GITHUB_API_TOKEN").Default("").String()
 	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
+	gitHubRepos                 = kingpin.Flag("gh.github-repos", "GitHub Repoitories to track.").Default("").Strings()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
-	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("5").Int()
+	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("30").Int()
 )
 
 func init() {
@@ -52,15 +54,15 @@ func main() {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
-	srv := server.NewServer(logger, server.Opts{
+	srv := server.NewServer(logger, config.Opts{
 		WebhookPath:           *ghWebHookPath,
 		ListenAddressMetrics:  *listenAddressMetrics,
-		ListenAddressIngress:  *listenAddressIngress,
 		MetricsPath:           *metricsPath,
 		GitHubToken:           *githubWebhookToken,
 		GitHubAPIToken:        *gitHubAPIToken,
 		GitHubUser:            *gitHubUser,
 		GitHubOrg:             *gitHubOrg,
+		GitHubRepos:           *gitHubRepos,
 		BillingAPIPollSeconds: *gitHubBillingPollingSeconds,
 	})
 	go func() {
