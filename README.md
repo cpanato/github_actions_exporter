@@ -5,10 +5,10 @@ This branch contains the assets associated to serve the static helm index and ch
 ## Usage
 
 ```
-$ helm repo add sigstore https://cpanato.github.io/helm
+$ helm repo add sigstore http://cpanato.dev/github_actions_exporter/
 "cpanato" has been added to your repositories
 
 $ helm repo list
 NAME                URL
-cpanato            https://cpanato.github.io/helm
+cpanato            http://cpanato.dev/github_actions_exporter/
 ```
