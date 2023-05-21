@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "github-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "github-exporter.name" . }}
+    helm.sh/chart: {{ include "github-exporter.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- if .Values.labels -}}
+    {{ .Values.labels | toYaml | nindent 4 -}}
+    {{- end }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "github-exporter.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "github-exporter.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        helm.sh/chart: {{ include "github-exporter.chart" . }}
+        {{- if .Values.podLabels -}}
+        {{ .Values.podLabels | toYaml | nindent 8 -}}
+        {{- end }}
+    spec:
+      containers:
+        - name: github-exporter
+          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}@{{ .Values.deployment.image.digest }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          args:
+          - --gh.github-api-token=$(GITHUB_TOKEN)
+          - --gh.github-webhook-token=$(GITHUB_WEBHOOK_TOKEN)
+          - --gh.github-org={{ .Values.config.org }}
+          - --gh.billing-poll-seconds={{ .Values.config.pollSeconds }}
+          envFrom:
+            - secretRef:
+                {{- if not .Values.secret.existingSecretName }}
+                name: {{ include "github-exporter.fullname" . }}
+                {{- else }}
+                name: {{ .Values.secret.existingSecretName }}
+                {{- end }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.service.portMetrics }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.service.portHttp }}
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 1
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 9
+          readinessProbe:
+            failureThreshold: 1
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 3
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 9
+          resources:
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
+      {{- with .Values.deployment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

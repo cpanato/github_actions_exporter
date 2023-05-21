@@ -1,0 +1,5 @@
+1.To see the metrics
+{{- if contains "ClusterIP" .Values.service.type }}
+  kubectl port-forward svc/{{ include "github-exporter.fullname" . }} {{ .Values.service.portMetrics }}
+  echo "Visit http://127.0.0.1:{{ .Values.service.portMetrics }}/metrics to check the metrics"
+{{- end }}

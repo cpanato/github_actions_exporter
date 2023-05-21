@@ -1,0 +1,6 @@
+config:
+  org: "fake-honk"
+
+secret:
+  githubToken: "fake-token"
+  githubWebhookToken: "fake-token"
