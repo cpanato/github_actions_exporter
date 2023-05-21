@@ -1,0 +1,16 @@
+apiVersion: v1
+entries:
+  github-exporter:
+  - apiVersion: v1
+    appVersion: 0.4.0
+    created: "2023-05-21T08:44:54.299840974Z"
+    description: GitHub exporter
+    digest: edd20c5b758d2baafe27c1288e7cae25724b370e4ee383e3f6625a508da856ba
+    home: https://github.com/cpanato/github_actions_exporter
+    maintainers:
+    - name: cpanato
+    name: github-exporter
+    urls:
+    - https://github.com/cpanato/github_actions_exporter/releases/download/github-exporter-0.1.0/github-exporter-0.1.0.tgz
+    version: 0.1.0
+generated: "2023-05-21T08:44:54.299852174Z"
