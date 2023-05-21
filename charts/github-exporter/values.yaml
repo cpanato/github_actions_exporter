@@ -1,0 +1,73 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+---
+nameOverride: ""
+fullnameOverride: ""
+
+labels: {}
+
+config:
+  org: ""
+  pollSeconds: 30
+
+secret:
+  existingSecretName: ""
+  githubToken: ""
+  githubWebhookToken: ""
+
+deployment:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/cpanato/github_actions_exporter
+    tag: v0.6.1
+    digest: sha256:39d4c45327d2ec0f4fbac3197f5a862da49d66f775d7844c899f5158db95f37e
+    pullPolicy: IfNotPresent
+
+  podLabels: {}
+
+  resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+service:
+  type: ClusterIP
+  portMetrics: 9101
+  portHttp: 8065
+  extraLabels: {}
+  annotationsMetrics: {}
+  annotationsIngress: {}
+
+ingress:
+  # if you set a webhook token you might want to setup the ingress to receive
+  # the webhook message
+  enabled: false
+  host:
+  extraLabels: {}
+  annotations: {}
+
+
+prometheus:
+  serviceMonitor:
+    enabled: false
+    namespace: monitoring
+    interval: "5m"
+    scrapeTimeout: 2m
+    additionalLabels:
+      app: github-exporter
+    metricRelabelings: {}
+  gcpManagedPrometheus:
+    enabled: false
