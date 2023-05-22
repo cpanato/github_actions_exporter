@@ -7,7 +7,7 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/google/go-github/v50 v50.2.0
 	github.com/prometheus/client_golang v1.15.1
-	github.com/prometheus/common v0.43.0
+	github.com/prometheus/common v0.44.0
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/oauth2 v0.8.0
 )
