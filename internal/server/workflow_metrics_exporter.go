@@ -29,11 +29,11 @@ type WorkflowMetricsExporter struct {
 	Cache              *cache.Cache
 }
 
-func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {
+func NewWorkflowMetricsExporter(logger log.Logger, opts Opts, observer WorkflowObserver) *WorkflowMetricsExporter {
 	return &WorkflowMetricsExporter{
 		Logger:             logger,
 		Opts:               opts,
-		PrometheusObserver: &PrometheusObserver{},
+		PrometheusObserver: observer,
 		Cache:              cache.New(24*time.Hour, 30*time.Minute),
 	}
 }

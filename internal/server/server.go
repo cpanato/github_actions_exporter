@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/go-github/v47/github"
+	"golang.org/x/oauth2"
 	"net"
 	"net/http"
 	"strings"
@@ -24,43 +26,65 @@ type Opts struct {
 	// GitHub API token.
 	GitHubAPIToken        string
 	GitHubOrg             string
+	GitHubEnterprise      string
 	GitHubUser            string
 	BillingAPIPollSeconds int
+	RunnersAPIPollSeconds int
+	BillingMetricsEnabled bool
+	RunnersMetricsEnabled bool
 }
 
 type Server struct {
-	logger                  log.Logger
-	server                  *http.Server
-	workflowMetricsExporter *WorkflowMetricsExporter
-	billingExporter         *BillingMetricsExporter
-	opts                    Opts
+	logger log.Logger
+	server *http.Server
+	opts   Opts
 }
 
 func NewServer(logger log.Logger, opts Opts) *Server {
 	mux := http.NewServeMux()
+
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	ghClient := NewGitHubClient(&opts, github.NewClient(tc))
+	observer := PrometheusObserver{}
 
 	httpServer := &http.Server{
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	billingExporter := NewBillingMetricsExporter(logger, opts)
-	err := billingExporter.StartOrgBilling(context.TODO())
-	if err != nil {
-		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
-	}
-	err = billingExporter.StartUserBilling(context.TODO())
-	if err != nil {
-		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+	if opts.BillingMetricsEnabled {
+		billingExporter := NewBillingMetricsExporter(logger, opts, ghClient)
+		err := billingExporter.StartOrgBilling(context.TODO())
+		if err != nil {
+			_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
+		}
+		err = billingExporter.StartUserBilling(context.TODO())
+		if err != nil {
+			_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+		}
+	} else {
+		_ = level.Info(logger).Log("msg", "billing metrics are disabled")
 	}
 
-	workflowExporter := NewWorkflowMetricsExporter(logger, opts)
+	if opts.RunnersMetricsEnabled {
+		runnersExporter := NewRunnersMetricsExporter(logger, opts, ghClient, &observer)
+		err := runnersExporter.Start(context.TODO())
+		if err != nil {
+			_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting runners: %v", err))
+		}
+	} else {
+		_ = level.Info(logger).Log("msg", "runners metrics are disabled")
+	}
+
+	workflowExporter := NewWorkflowMetricsExporter(logger, opts, &observer)
 	server := &Server{
-		logger:                  logger,
-		server:                  httpServer,
-		workflowMetricsExporter: workflowExporter,
-		billingExporter:         billingExporter,
-		opts:                    opts,
+		logger: logger,
+		server: httpServer,
+		opts:   opts,
 	}
 
 	mux.Handle(opts.MetricsPath, promhttp.Handler())

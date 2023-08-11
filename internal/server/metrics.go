@@ -1,6 +1,9 @@
 package server
 
-import "github.com/prometheus/client_golang/prometheus"
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"strconv"
+)
 
 var (
 	workflowJobHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -96,6 +99,13 @@ var (
 	},
 		[]string{"org", "user"},
 	)
+
+	registeredRunnersTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "actions_registered_runners_total",
+		Help: "The number of registered Actions runners.",
+	},
+		[]string{"busy", "status", "runner_group"},
+	)
 )
 
 func init() {
@@ -112,6 +122,7 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedUbuntuActions)
 	prometheus.MustRegister(totalMinutesUsedMacOSActions)
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
+	prometheus.MustRegister(registeredRunnersTotal)
 }
 
 type WorkflowObserver interface {
@@ -123,7 +134,13 @@ type WorkflowObserver interface {
 	CountWorkflowRunStatus(org, repo, status, conclusion, workflow string)
 }
 
+type RunnersObserver interface {
+	ResetRegisteredRunnersTotal()
+	IncreaseRegisteredRunnersTotal(busy bool, status string, runnerGroup string)
+}
+
 var _ WorkflowObserver = (*PrometheusObserver)(nil)
+var _ RunnersObserver = (*PrometheusObserver)(nil)
 
 type PrometheusObserver struct{}
 
@@ -150,4 +167,12 @@ func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName 
 
 func (o *PrometheusObserver) CountWorkflowRunStatus(org, repo, status, conclusion, workflowName string) {
 	workflowRunStatusCounter.WithLabelValues(org, repo, status, conclusion, workflowName).Inc()
+}
+
+func (o *PrometheusObserver) ResetRegisteredRunnersTotal() {
+	registeredRunnersTotal.Reset()
+}
+
+func (o *PrometheusObserver) IncreaseRegisteredRunnersTotal(busy bool, status string, runnerGroup string) {
+	registeredRunnersTotal.WithLabelValues(strconv.FormatBool(busy), status, runnerGroup).Inc()
 }

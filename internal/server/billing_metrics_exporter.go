@@ -7,24 +7,15 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/google/go-github/v47/github"
-	"golang.org/x/oauth2"
 )
 
 type BillingMetricsExporter struct {
-	GHClient *github.Client
+	GHClient GitHubClient
 	Logger   log.Logger
 	Opts     Opts
 }
 
-func NewBillingMetricsExporter(logger log.Logger, opts Opts) *BillingMetricsExporter {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
+func NewBillingMetricsExporter(logger log.Logger, opts Opts, client GitHubClient) *BillingMetricsExporter {
 	return &BillingMetricsExporter{
 		Logger:   logger,
 		Opts:     opts,
@@ -83,7 +74,7 @@ func (c *BillingMetricsExporter) StartUserBilling(ctx context.Context) error {
 
 // CollectActionBilling collect the action billing.
 func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
-	actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingOrg(ctx, c.Opts.GitHubOrg)
+	actionsBilling, err := c.GHClient.GetActionsBillingOrg(ctx, c.Opts.GitHubOrg)
 	if err != nil {
 		_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
 		return
@@ -98,7 +89,7 @@ func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
 }
 
 func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
-	actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingUser(ctx, c.Opts.GitHubUser)
+	actionsBilling, err := c.GHClient.GetActionsBillingUser(ctx, c.Opts.GitHubUser)
 	if err != nil {
 		_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
 		return
