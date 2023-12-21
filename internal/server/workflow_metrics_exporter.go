@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/patrickmn/go-cache"
 	"io"
 	"math"
 	"net/http"
@@ -14,10 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/patrickmn/go-cache"
+
 	"github.com/cpanato/github_actions_exporter/model"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v52/github"
 )
 
 // WorkflowMetricsExporter struct to hold some information

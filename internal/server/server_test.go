@@ -2,16 +2,17 @@ package server_test
 
 import (
 	"context"
-	"github.com/cpanato/github_actions_exporter/model"
 	"io"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/cpanato/github_actions_exporter/model"
+
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/log"
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -96,6 +97,13 @@ var (
 	totalMinutesUsedWindowsActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_windows_minutes",
 		Help: "Total minutes used for Windows type for the GitHub Actions.",
+	},
+		[]string{"org", "user"},
+	)
+
+	totalMinutesUsedInPrivateUbuntu4CoreActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "actions_total_minutes_used_private_ubuntu_4cores_minutes",
+		Help: "Total minutes used for private Ubuntu 4 cores type for the GitHub Actions.",
 	},
 		[]string{"org", "user"},
 	)

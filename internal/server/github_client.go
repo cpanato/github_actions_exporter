@@ -3,8 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"github.com/google/go-github/v47/github"
 	"strconv"
+
+	"github.com/google/go-github/v52/github"
 )
 
 const (

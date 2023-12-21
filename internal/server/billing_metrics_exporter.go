@@ -9,6 +9,13 @@ import (
 	"github.com/go-kit/log/level"
 )
 
+const (
+	publicUbuntuLabel        string = "UBUNTU"
+	publicMacOsLabel         string = "MACOS"
+	publicWindowsLabel       string = "WINDOWS"
+	privateUbuntu4CoresLabel string = "ubuntu_4_core"
+)
+
 type BillingMetricsExporter struct {
 	GHClient GitHubClient
 	Logger   log.Logger
@@ -83,9 +90,9 @@ func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
 	totalMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.TotalMinutesUsed))
 	includedMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.IncludedMinutes))
 	totalPaidMinutesActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(actionsBilling.TotalPaidMinutesUsed)
-	totalMinutesUsedUbuntuActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-	totalMinutesUsedMacOSActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-	totalMinutesUsedWindowsActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
+	totalMinutesUsedUbuntuActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown[publicUbuntuLabel]))
+	totalMinutesUsedMacOSActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown[publicMacOsLabel]))
+	totalMinutesUsedInPrivateUbuntu4CoreActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown[publicWindowsLabel]))
 }
 
 func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
@@ -98,7 +105,7 @@ func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
 	totalMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.TotalMinutesUsed))
 	includedMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.IncludedMinutes))
 	totalPaidMinutesActions.WithLabelValues("", c.Opts.GitHubUser).Set(actionsBilling.TotalPaidMinutesUsed)
-	totalMinutesUsedUbuntuActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-	totalMinutesUsedMacOSActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-	totalMinutesUsedWindowsActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
+	totalMinutesUsedUbuntuActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown[publicUbuntuLabel]))
+	totalMinutesUsedMacOSActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown[publicMacOsLabel]))
+	totalMinutesUsedInPrivateUbuntu4CoreActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown[publicWindowsLabel]))
 }

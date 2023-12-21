@@ -3,14 +3,15 @@ package server_test
 import (
 	"context"
 	"errors"
-	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/log"
-	"github.com/google/go-github/v47/github"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cpanato/github_actions_exporter/internal/server"
+	"github.com/go-kit/log"
+	"github.com/google/go-github/v52/github"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
