@@ -101,7 +101,7 @@ var (
 		[]string{"org", "user"},
 	)
 
-	totalMinutesUsedInPrivateUbuntu4CoreActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	totalMinutesUsedUbuntu4CoreActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_private_ubuntu_4cores_minutes",
 		Help: "Total minutes used for private Ubuntu 4 cores type for the GitHub Actions.",
 	},
@@ -130,6 +130,7 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedUbuntuActions)
 	prometheus.MustRegister(totalMinutesUsedMacOSActions)
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
+	prometheus.MustRegister(totalMinutesUsedUbuntu4CoreActions)
 	prometheus.MustRegister(registeredRunnersTotal)
 }
 
