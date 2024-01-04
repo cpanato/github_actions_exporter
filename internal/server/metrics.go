@@ -1,8 +1,9 @@
 package server
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -79,25 +80,11 @@ var (
 		[]string{"org", "user"},
 	)
 
-	totalMinutesUsedUbuntuActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "actions_total_minutes_used_ubuntu_minutes",
-		Help: "Total minutes used for Ubuntu type for the GitHub Actions.",
+	totalMinutesUsedByRunnersActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "actions_minutes_used_total",
+		Help: "Total minutes used for runner type for the GitHub Actions.",
 	},
-		[]string{"org", "user"},
-	)
-
-	totalMinutesUsedMacOSActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "actions_total_minutes_used_macos_minutes",
-		Help: "Total minutes used for MacOS type for the GitHub Actions.",
-	},
-		[]string{"org", "user"},
-	)
-
-	totalMinutesUsedWindowsActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "actions_total_minutes_used_windows_minutes",
-		Help: "Total minutes used for Windows type for the GitHub Actions.",
-	},
-		[]string{"org", "user"},
+		[]string{"org", "user", "runner"},
 	)
 
 	registeredRunnersTotal = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -119,9 +106,7 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedActions)
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
-	prometheus.MustRegister(totalMinutesUsedUbuntuActions)
-	prometheus.MustRegister(totalMinutesUsedMacOSActions)
-	prometheus.MustRegister(totalMinutesUsedWindowsActions)
+	prometheus.MustRegister(totalMinutesUsedByRunnersActions)
 	prometheus.MustRegister(registeredRunnersTotal)
 }
 

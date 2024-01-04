@@ -83,9 +83,10 @@ func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
 	totalMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.TotalMinutesUsed))
 	includedMinutesUsedActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.IncludedMinutes))
 	totalPaidMinutesActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(actionsBilling.TotalPaidMinutesUsed)
-	totalMinutesUsedUbuntuActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-	totalMinutesUsedMacOSActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-	totalMinutesUsedWindowsActions.WithLabelValues(c.Opts.GitHubOrg, "").Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
+
+	for k, v := range actionsBilling.MinutesUsedBreakdown {
+		totalMinutesUsedByRunnersActions.WithLabelValues(c.Opts.GitHubOrg, "", k).Set(float64(v))
+	}
 }
 
 func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
@@ -98,7 +99,7 @@ func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
 	totalMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.TotalMinutesUsed))
 	includedMinutesUsedActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.IncludedMinutes))
 	totalPaidMinutesActions.WithLabelValues("", c.Opts.GitHubUser).Set(actionsBilling.TotalPaidMinutesUsed)
-	totalMinutesUsedUbuntuActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Ubuntu))
-	totalMinutesUsedMacOSActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.MacOS))
-	totalMinutesUsedWindowsActions.WithLabelValues("", c.Opts.GitHubUser).Set(float64(actionsBilling.MinutesUsedBreakdown.Windows))
+	for k, v := range actionsBilling.MinutesUsedBreakdown {
+		totalMinutesUsedByRunnersActions.WithLabelValues(c.Opts.GitHubOrg, c.Opts.GitHubUser, k).Set(float64(v))
+	}
 }

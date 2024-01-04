@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/go-github/v47/github"
-	"golang.org/x/oauth2"
 	"net"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/google/go-github/v52/github"
+	"golang.org/x/oauth2"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"

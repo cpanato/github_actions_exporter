@@ -2,7 +2,7 @@ package model
 
 import (
 	"encoding/json"
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v52/github"
 )
 
 // PingEventFromJSON decodes the incomming message to a github.PingEvent
