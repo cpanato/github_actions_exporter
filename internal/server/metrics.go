@@ -81,7 +81,7 @@ var (
 	)
 
 	totalMinutesUsedByRunnersActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "actions_total_minutes_used_by_runner_minutes",
+		Name: "actions_minutes_used_total",
 		Help: "Total minutes used for runner type for the GitHub Actions.",
 	},
 		[]string{"org", "user", "runner"},
