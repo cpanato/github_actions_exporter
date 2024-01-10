@@ -463,6 +463,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 	runStartTime := time.Unix(1650308740, 0)
 	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
 	status := "completed"
+	triggerEvent := "repository_dispatch"
 	event := github.WorkflowRunEvent{
 		Action: github.String("completed"),
 		Repo: &github.Repository{
@@ -476,6 +477,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 		},
 		WorkflowRun: &github.WorkflowRun{
 			Status:       &status,
+			Event:        &triggerEvent,
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
 		},
@@ -499,6 +501,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 		repo:         repo,
 		workflowName: workflowName,
 		status:       status,
+		triggerEvent: triggerEvent,
 	}, 50*time.Millisecond)
 }
 
@@ -535,6 +538,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 			Status:       github.String("completed"),
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
+			Event:        github.String("repository_dispatch"),
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_run", event)
@@ -621,7 +625,7 @@ type workflowRunObservation struct {
 }
 
 type workflowRunStatusCount struct {
-	org, repo, status, conclusion, workflowName string
+	org, repo, status, conclusion, workflowName, triggerEvent string
 }
 
 var _ server.WorkflowObserver = (*TestPrometheusObserver)(nil)
@@ -696,13 +700,14 @@ func (o *TestPrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowN
 	}
 }
 
-func (o *TestPrometheusObserver) CountWorkflowRunStatus(org, repo, status, conclusion, workflowName string) {
+func (o *TestPrometheusObserver) CountWorkflowRunStatus(org, repo, status, conclusion, workflowName string, triggerEvent string) {
 	o.workflowRunStatusCounted <- workflowRunStatusCount{
 		org:          org,
 		repo:         repo,
 		status:       status,
 		conclusion:   conclusion,
 		workflowName: workflowName,
+		triggerEvent: triggerEvent,
 	}
 }
 

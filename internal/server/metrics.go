@@ -56,7 +56,7 @@ var (
 		Name: "workflow_status_count",
 		Help: "Count of the occurrences of different workflow states.",
 	},
-		[]string{"org", "repo", "status", "conclusion", "workflow_name"},
+		[]string{"org", "repo", "status", "conclusion", "workflow_name", "trigger_event"},
 	)
 
 	totalMinutesUsedActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -116,7 +116,7 @@ type WorkflowObserver interface {
 	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string)
 	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64)
 	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
-	CountWorkflowRunStatus(org, repo, status, conclusion, workflow string)
+	CountWorkflowRunStatus(org, repo, status, conclusion, workflow, triggerEvent string)
 }
 
 type RunnersObserver interface {
@@ -150,8 +150,8 @@ func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName 
 		Observe(seconds)
 }
 
-func (o *PrometheusObserver) CountWorkflowRunStatus(org, repo, status, conclusion, workflowName string) {
-	workflowRunStatusCounter.WithLabelValues(org, repo, status, conclusion, workflowName).Inc()
+func (o *PrometheusObserver) CountWorkflowRunStatus(org, repo, status, conclusion, workflowName, triggerEvent string) {
+	workflowRunStatusCounter.WithLabelValues(org, repo, status, conclusion, workflowName, triggerEvent).Inc()
 }
 
 func (o *PrometheusObserver) ResetRegisteredRunnersTotal() {

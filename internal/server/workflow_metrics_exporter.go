@@ -186,7 +186,8 @@ func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.Workflow
 
 	status := event.GetWorkflowRun().GetStatus()
 	conclusion := event.GetWorkflowRun().GetConclusion()
-	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName)
+	triggerEvent := event.GetWorkflowRun().GetEvent()
+	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName, triggerEvent)
 }
 
 // validateSignature validate the incoming github event.
