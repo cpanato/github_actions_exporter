@@ -87,6 +87,7 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	}()
 
 	repo := "some-repo"
+	branch := "some-branch"
 	org := "someone"
 	expectedDuration := 10.0
 	jobStartedAt := time.Unix(1650308740, 0)
@@ -104,6 +105,7 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 			},
 		},
 		WorkflowJob: &github.WorkflowJob{
+			HeadBranch:      &branch,
 			Status:          github.String("completed"),
 			Conclusion:      github.String("success"),
 			StartedAt:       &github.Timestamp{Time: jobStartedAt},
@@ -129,6 +131,6 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 
 	payload, err := io.ReadAll(metricsRes.Body)
 	require.NoError(t, err)
-	assert.Contains(t, string(payload), `workflow_job_duration_seconds_bucket{job_name="Test",org="someone",repo="some-repo",runner_group="runner-group",state="in_progress",workflow_name="Build and test",le="10.541350399999995"} 1`)
-	assert.Contains(t, string(payload), `workflow_job_duration_seconds_total{conclusion="success",job_name="Test",org="someone",repo="some-repo",runner_group="runner-group",status="completed",workflow_name="Build and test"} 10`)
+	assert.Contains(t, string(payload), `workflow_job_duration_seconds_bucket{branch="some-branch",job_name="Test",org="someone",repo="some-repo",runner_group="runner-group",state="in_progress",workflow_name="Build and test",le="10.541350399999995"} 1`)
+	assert.Contains(t, string(payload), `workflow_job_duration_seconds_total{branch="some-branch",conclusion="success",job_name="Test",org="someone",repo="some-repo",runner_group="runner-group",status="completed",workflow_name="Build and test"} 10`)
 }
