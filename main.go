@@ -24,7 +24,7 @@ var (
 	ghWebHookPath               = kingpin.Flag("web.gh-webhook-path", "Path that will be called by the GitHub webhook.").Default("/gh_event").String()
 	githubWebhookToken          = kingpin.Flag("gh.github-webhook-token", "GitHub Webhook Token.").Envar("GITHUB_WEBHOOK_TOKEN").Default("").String()
 	gitHubAPIToken              = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Envar("GITHUB_API_TOKEN").Default("").String()
-	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Default("").String()
+	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Envar("GITHUB_ORG").Default("").String()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
 	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("5").Int()
 )
