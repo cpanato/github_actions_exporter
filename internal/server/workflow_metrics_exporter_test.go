@@ -208,7 +208,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetWorkflowJobObservation(workflowJobObservation{
+	observer.assertWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "queued",
@@ -274,7 +274,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetWorkflowJobObservation(workflowJobObservation{
+	observer.assertWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "queued",
@@ -335,7 +335,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetWorkflowJobObservation(workflowJobObservation{
+	observer.assertWorkflowJobObservation(workflowJobObservation{
 		org:         org,
 		repo:        repo,
 		state:       "in_progress",
@@ -478,6 +478,8 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 	runStartTime := time.Unix(1650308740, 0)
 	runUpdatedTime := runStartTime.Add(time.Duration(expectedRunDuration) * time.Second)
 	status := "completed"
+	conclusion := "success"
+
 	event := github.WorkflowRunEvent{
 		Action: github.String("completed"),
 		Repo: &github.Repository{
@@ -493,6 +495,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 			Status:       &status,
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
+			Conclusion:   &conclusion,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_run", event)
@@ -503,10 +506,11 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assetWorkflowRunObservation(workflowRunObservation{
+	observer.assertWorkflowRunObservation(workflowRunObservation{
 		org:          org,
 		repo:         repo,
 		workflowName: workflowName,
+		conclusion:   conclusion,
 		seconds:      expectedRunDuration,
 	}, 50*time.Millisecond)
 	observer.assertWorkflowRunStatusCount(workflowRunStatusCount{
@@ -514,6 +518,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 		repo:         repo,
 		workflowName: workflowName,
 		status:       status,
+		conclusion:   conclusion,
 	}, 50*time.Millisecond)
 }
 
@@ -597,8 +602,8 @@ type workflowJobDurationCount struct {
 }
 
 type workflowRunObservation struct {
-	org, repo, workflowName string
-	seconds                 float64
+	org, repo, workflowName, conclusion string
+	seconds                             float64
 }
 
 type workflowRunStatusCount struct {
@@ -658,12 +663,13 @@ func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, status, con
 	}
 }
 
-func (o *TestPrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
+func (o *TestPrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName, conclusion string, seconds float64) {
 	o.workflowRunObserved <- workflowRunObservation{
 		org:          org,
 		repo:         repo,
 		workflowName: workflowName,
 		seconds:      seconds,
+		conclusion:   conclusion,
 	}
 }
 
@@ -685,7 +691,7 @@ func (o *TestPrometheusObserver) assertNoWorkflowJobDurationObservation(timeout 
 	}
 }
 
-func (o *TestPrometheusObserver) assetWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
+func (o *TestPrometheusObserver) assertWorkflowJobObservation(expected workflowJobObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")
@@ -712,7 +718,7 @@ func (o *TestPrometheusObserver) assertWorkflowJobDurationCount(expected workflo
 	}
 }
 
-func (o *TestPrometheusObserver) assetWorkflowRunObservation(expected workflowRunObservation, timeout time.Duration) {
+func (o *TestPrometheusObserver) assertWorkflowRunObservation(expected workflowRunObservation, timeout time.Duration) {
 	select {
 	case <-time.After(timeout):
 		o.t.Fatal("expected observation but none occurred")

@@ -30,7 +30,7 @@ var (
 		Help:    "Time that a workflow took to run.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
 	},
-		[]string{"org", "repo", "workflow_name"},
+		[]string{"org", "repo", "workflow_name", "conclusion"},
 	)
 
 	workflowRunStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
@@ -110,7 +110,7 @@ type WorkflowObserver interface {
 	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
 	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string)
 	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64)
-	ObserveWorkflowRunDuration(org, repo, workflow string, seconds float64)
+	ObserveWorkflowRunDuration(org, repo, workflow, conclusion string, seconds float64)
 	CountWorkflowRunStatus(org, repo, status, conclusion, workflow string)
 }
 
@@ -131,8 +131,8 @@ func (o *PrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclus
 	workflowJobDurationCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup).Add(seconds)
 }
 
-func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName string, seconds float64) {
-	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName).
+func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName, conclusion string, seconds float64) {
+	workflowRunHistogramVec.WithLabelValues(org, repo, workflowName, conclusion).
 		Observe(seconds)
 }
 

@@ -130,14 +130,14 @@ func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.Workflow
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
 	workflowName := event.GetWorkflow().GetName()
+	conclusion := event.GetWorkflowRun().GetConclusion()
 
 	if event.GetAction() == "completed" {
 		seconds := event.GetWorkflowRun().UpdatedAt.Time.Sub(event.GetWorkflowRun().RunStartedAt.Time).Seconds()
-		c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, seconds)
+		c.PrometheusObserver.ObserveWorkflowRunDuration(org, repo, workflowName, conclusion, seconds)
 	}
 
 	status := event.GetWorkflowRun().GetStatus()
-	conclusion := event.GetWorkflowRun().GetConclusion()
 	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, status, conclusion, workflowName)
 }
 
