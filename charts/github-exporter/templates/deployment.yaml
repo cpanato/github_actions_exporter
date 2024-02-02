@@ -32,7 +32,7 @@ spec:
           image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag }}@{{ .Values.deployment.image.digest }}"
           imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
           args:
-          - --gh.github-api-token=$(GITHUB_API_TOKEN)
+          - --gh.github-token=$(GITHUB_TOKEN)
           - --gh.github-webhook-token=$(GITHUB_WEBHOOK_TOKEN)
           - --gh.github-org={{ .Values.config.org }}
           - --gh.billing-poll-seconds={{ .Values.config.pollSeconds }}

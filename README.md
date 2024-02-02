@@ -47,7 +47,7 @@ make build
 ## Run the binary
 
 ```bash
-./github_actions_exporter --gh.github-webhook-token="MY_TOKEN" --gh.github-api-token="Accesstoken" --gh.github-org="honk_org"
+./github_actions_exporter --gh.github-webhook-token="MY_TOKEN" --gh.github-token="Accesstoken" --gh.github-org="honk_org"
 ```
 
 ## Docker
@@ -58,7 +58,7 @@ For example:
 
 ```bash
 docker pull ghcr.io/cpanato/github_actions_exporter-linux-amd64:v0.2.0
-docker run -d -p 9101:9101 ghcr.io/cpanato/github_actions_exporter-linux-amd64:v0.2.0 --gh.github-webhook-token="1234567890token" --gh.github-api-token="Accesstoken" --gh.github-org="honk_org"
+docker run -d -p 9101:9101 ghcr.io/cpanato/github_actions_exporter-linux-amd64:v0.2.0 --gh.github-webhook-token="1234567890token" --gh.github-token="Accesstoken" --gh.github-org="honk_org"
 ```
 
 ## Testing
@@ -74,7 +74,7 @@ make test
 ```bash
 cd example/
 export GITHUB_WEBHOOK_TOKEN="..."
-export GITHUB_API_TOKEN="..."
+export GITHUB_TOKEN="..."
 export GITHUB_ORG="..."
 docker-compose up --build
 ```
