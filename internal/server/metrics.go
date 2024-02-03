@@ -63,21 +63,21 @@ var (
 
 	totalMinutesUsedUbuntuActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_ubuntu_minutes",
-		Help: "Total minutes used for Ubuntu type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
+		Help: "Total minutes used for Ubuntu type for the GitHub Actions. To be deprecated, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
 	)
 
 	totalMinutesUsedMacOSActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_macos_minutes",
-		Help: "Total minutes used for MacOS type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
+		Help: "Total minutes used for MacOS type for the GitHub Actions. To be deprecated, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
 	)
 
 	totalMinutesUsedWindowsActions = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "actions_total_minutes_used_windows_minutes",
-		Help: "Total minutes used for Windows type for the GitHub Actions. To be deprecate, use actions_total_minutes_used_by_host_minutes",
+		Help: "Total minutes used for Windows type for the GitHub Actions. To be deprecated, use actions_total_minutes_used_by_host_minutes",
 	},
 		[]string{"org", "user"},
 	)
@@ -87,6 +87,13 @@ var (
 		Help: "Total minutes used for a specific host type for the GitHub Actions.",
 	},
 		[]string{"org", "user", "host_type"},
+	)
+
+	numberOfSelfHostedRunners = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "github_actions_num_self_hosted_org_runners",
+		Help: "Number of self-hosted org runners for the GitHub Actions.",
+	},
+		[]string{"org"},
 	)
 )
 
@@ -104,6 +111,7 @@ func init() {
 	prometheus.MustRegister(totalMinutesUsedMacOSActions)
 	prometheus.MustRegister(totalMinutesUsedWindowsActions)
 	prometheus.MustRegister(totalMinutesUsedByHostTypeActions)
+	prometheus.MustRegister(numberOfSelfHostedRunners)
 }
 
 type WorkflowObserver interface {

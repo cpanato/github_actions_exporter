@@ -8,7 +8,6 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/google/go-github/v50/github"
-	"golang.org/x/oauth2"
 )
 
 type BillingMetricsExporter struct {
@@ -18,12 +17,7 @@ type BillingMetricsExporter struct {
 }
 
 func NewBillingMetricsExporter(logger log.Logger, opts Opts) *BillingMetricsExporter {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	client := getGithubClient(opts.GitHubAPIToken)
 
 	return &BillingMetricsExporter{
 		Logger:   logger,
