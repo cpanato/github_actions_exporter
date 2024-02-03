@@ -25,14 +25,14 @@ func NewRunnerMetricsExporter(logger log.Logger, opts Opts) *RunnerMetricsExport
 	}
 }
 
-func (e *RunnerMetricsExporter) StartOrgRunnerMetricsCollection(ctx context.Context) error {
+func (e *RunnerMetricsExporter) StartOrgRunnerMetricsCollection(ctx context.Context) {
 	if e.Opts.GitHubOrg == "" {
-		level.Info(e.Logger).Log("msg", "Github org is not set, no org runner metrics will be collected.")
-		return nil
+		_ = level.Info(e.Logger).Log("msg", "Github org is not set, no org runner metrics will be collected.")
+		return
 	}
 	if e.Opts.GitHubAPIToken == "" {
-		level.Info(e.Logger).Log("msg", "Github token is not set, no org runner metrics will be collected.")
-		return nil
+		_ = level.Info(e.Logger).Log("msg", "Github token is not set, no org runner metrics will be collected.")
+		return
 	}
 
 	ticker := time.NewTicker(time.Duration(e.Opts.RunnersAPIPollSeconds) * time.Second)
@@ -43,20 +43,18 @@ func (e *RunnerMetricsExporter) StartOrgRunnerMetricsCollection(ctx context.Cont
 				e.collectOrgRunnerMetrics(ctx)
 			case <-ctx.Done():
 				ticker.Stop()
-				level.Info(e.Logger).Log("msg", "Stopped polling for org runner metrics.")
+				_ = level.Info(e.Logger).Log("msg", "Stopped polling for org runner metrics.")
 				return
 			}
 		}
 	}()
-
-	return nil
 }
 
 func (e *RunnerMetricsExporter) collectOrgRunnerMetrics(ctx context.Context) {
 	runners, _, err := e.GHClient.Actions.ListOrganizationRunners(ctx, e.Opts.GitHubOrg, nil)
 
 	if err != nil {
-		e.Logger.Log("msg", "Failed to retrieve org runners for org ", e.Opts.GitHubOrg, " ", err)
+		_ = e.Logger.Log("msg", "Failed to retrieve org runners for org ", e.Opts.GitHubOrg, " ", err)
 	}
 
 	numberOfSelfHostedRunners.WithLabelValues(e.Opts.GitHubOrg).Set(float64(runners.TotalCount))

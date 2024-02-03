@@ -7,7 +7,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var client *github.Client = nil
+var client *github.Client
 
 func getGithubClient(githubToken string) *github.Client {
 	if client != nil {
