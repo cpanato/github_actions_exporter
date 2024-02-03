@@ -27,6 +27,9 @@ type Opts struct {
 	GitHubOrg             string
 	GitHubUser            string
 	BillingAPIPollSeconds int
+
+	GitHubRunnersRepos    []string
+	RunnersAPIPollSeconds int
 }
 
 type Server struct {
@@ -54,6 +57,9 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 	if err != nil {
 		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
 	}
+
+	runnerMetricsExporter := NewRunnerMetricsExporter(logger, opts)
+	runnerMetricsExporter.StartOrgRunnerMetricsCollection(context.TODO())
 
 	muxIngress := http.NewServeMux()
 	httpServerIngress := &http.Server{

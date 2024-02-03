@@ -27,6 +27,8 @@ var (
 	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Envar("GITHUB_ORG").Default("").String()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
 	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("5").Int()
+	gitHubRunnersRepos          = kingpin.Flag("gh.runners-repos", "The name of the repositories where runners are configures.").Default("").Strings()
+	gitHubRunnersPollingSeconds = kingpin.Flag("gh.runners-poll-seconds", "Frequency at which to poll runners API.").Default("5").Int()
 )
 
 func init() {
@@ -62,6 +64,8 @@ func main() {
 		GitHubUser:            *gitHubUser,
 		GitHubOrg:             *gitHubOrg,
 		BillingAPIPollSeconds: *gitHubBillingPollingSeconds,
+		GitHubRunnersRepos:    *gitHubRunnersRepos,
+		RunnersAPIPollSeconds: *gitHubRunnersPollingSeconds,
 	})
 	go func() {
 		err := srv.Serve(context.Background())
