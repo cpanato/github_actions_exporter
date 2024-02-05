@@ -8,21 +8,21 @@ var (
 		Help:    "Time that a workflow job took to reach a given state.",
 		Buckets: prometheus.ExponentialBuckets(1, 1.4, 30),
 	},
-		[]string{"org", "repo", "state", "runner_group"},
+		[]string{"org", "repo", "state", "runner_group", "workflow_name", "job_name"},
 	)
 
 	workflowJobDurationCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "workflow_job_duration_seconds_total",
 		Help: "The total duration of jobs.",
 	},
-		[]string{"org", "repo", "status", "conclusion", "runner_group"},
+		[]string{"org", "repo", "status", "conclusion", "runner_group", "workflow_name", "job_name"},
 	)
 
 	workflowJobStatusCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "workflow_job_status_count",
 		Help: "Count of workflow job events.",
 	},
-		[]string{"org", "repo", "status", "conclusion", "runner_group"},
+		[]string{"org", "repo", "status", "conclusion", "runner_group", "workflow_name", "job_name"},
 	)
 
 	workflowRunHistogramVec = prometheus.NewHistogramVec(prometheus.HistogramOpts{
@@ -107,9 +107,10 @@ func init() {
 }
 
 type WorkflowObserver interface {
-	ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64)
-	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string)
-	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64)
+	ObserveWorkflowJobDuration(org, repo, state, runnerGroup, workflowName, jobName string, seconds float64)
+	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName string)
+	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName string, seconds float64)
+
 	ObserveWorkflowRunDuration(org, repo, workflow, conclusion string, seconds float64)
 	CountWorkflowRunStatus(org, repo, status, conclusion, workflow string)
 }
@@ -118,17 +119,17 @@ var _ WorkflowObserver = (*PrometheusObserver)(nil)
 
 type PrometheusObserver struct{}
 
-func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
-	workflowJobHistogramVec.WithLabelValues(org, repo, state, runnerGroup).
+func (o *PrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup, workflowName, jobName string, seconds float64) {
+	workflowJobHistogramVec.WithLabelValues(org, repo, state, runnerGroup, workflowName, jobName).
 		Observe(seconds)
 }
 
-func (o *PrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string) {
-	workflowJobStatusCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup).Inc()
+func (o *PrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName string) {
+	workflowJobStatusCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup, workflowName, jobName).Inc()
 }
 
-func (o *PrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64) {
-	workflowJobDurationCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup).Add(seconds)
+func (o *PrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName string, seconds float64) {
+	workflowJobDurationCounter.WithLabelValues(org, repo, status, conclusion, runnerGroup, workflowName, jobName).Add(seconds)
 }
 
 func (o *PrometheusObserver) ObserveWorkflowRunDuration(org, repo, workflowName, conclusion string, seconds float64) {
