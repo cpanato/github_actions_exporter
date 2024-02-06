@@ -126,6 +126,9 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 	action := "completed"
 	status := "completed"
 	conclusion := "success"
+	workflowName := "Build and test"
+	jobName := "Test"
+
 	event := github.WorkflowJobEvent{
 		Action: &action,
 		Repo: &github.Repository{
@@ -138,6 +141,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 			Status:          &status,
 			Conclusion:      &conclusion,
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -150,11 +155,13 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertNoWorkflowJobDurationObservation(1 * time.Second)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		status:      action,
-		conclusion:  conclusion,
-		runnerGroup: runnerGroupName,
+		org:          org,
+		repo:         repo,
+		status:       action,
+		conclusion:   conclusion,
+		runnerGroup:  runnerGroupName,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -177,6 +184,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	runnerGroupName := "runner-group"
 	action := "in_progress"
 	status := "in_progress"
+	workflowName := "Build and test"
+	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
 		Action: &action,
@@ -198,6 +207,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 				},
 			},
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -209,18 +220,22 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertWorkflowJobObservation(workflowJobObservation{
-		org:         org,
-		repo:        repo,
-		state:       "queued",
-		runnerGroup: runnerGroupName,
-		seconds:     expectedDuration,
+		org:          org,
+		repo:         repo,
+		state:        "queued",
+		runnerGroup:  runnerGroupName,
+		seconds:      expectedDuration,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      action,
-		conclusion:  "",
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       action,
+		conclusion:   "",
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -243,6 +258,8 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 	runnerGroupName := "runner-group"
 	action := "in_progress"
 	status := "in_progress"
+	workflowName := "Build and test"
+	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
 		Action: &action,
@@ -264,6 +281,8 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 				},
 			},
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -275,18 +294,22 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertWorkflowJobObservation(workflowJobObservation{
-		org:         org,
-		repo:        repo,
-		state:       "queued",
-		runnerGroup: runnerGroupName,
-		seconds:     0,
+		org:          org,
+		repo:         repo,
+		state:        "queued",
+		runnerGroup:  runnerGroupName,
+		workflowName: workflowName,
+		jobName:      jobName,
+		seconds:      0,
 	}, 50*time.Millisecond)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      action,
-		conclusion:  "",
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       action,
+		conclusion:   "",
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -310,6 +333,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 	action := "completed"
 	status := "completed"
 	conclusion := "success"
+	workflowName := "Build and test"
+	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
 		Action: &action,
@@ -325,6 +350,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 			Status:          &status,
 			Conclusion:      &conclusion,
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -336,26 +363,32 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertWorkflowJobObservation(workflowJobObservation{
-		org:         org,
-		repo:        repo,
-		state:       "in_progress",
-		runnerGroup: runnerGroupName,
-		seconds:     expectedDuration,
+		org:          org,
+		repo:         repo,
+		state:        "in_progress",
+		runnerGroup:  runnerGroupName,
+		seconds:      expectedDuration,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      status,
-		conclusion:  conclusion,
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       status,
+		conclusion:   conclusion,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 	observer.assertWorkflowJobDurationCount(workflowJobDurationCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      status,
-		conclusion:  conclusion,
-		seconds:     expectedDuration,
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       status,
+		conclusion:   conclusion,
+		seconds:      expectedDuration,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -377,6 +410,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoStart
 	action := "completed"
 	status := "completed"
 	conclusion := "success"
+	workflowName := "Build and test"
+	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
 		Action: &action,
@@ -391,6 +426,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoStart
 			Conclusion:      &conclusion,
 			Status:          &status,
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -402,11 +439,13 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoStart
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      status,
-		conclusion:  conclusion,
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       status,
+		conclusion:   conclusion,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -427,6 +466,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoCompl
 	action := "completed"
 	status := "completed"
 	conclusion := "success"
+	workflowName := "Build and test"
+	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
 		Action: &action,
@@ -441,6 +482,8 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoCompl
 			Conclusion:      &conclusion,
 			Status:          &status,
 			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
 		},
 	}
 	req := testWebhookRequest(t, "/anything", "workflow_job", event)
@@ -452,11 +495,13 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoCompl
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		runnerGroup: runnerGroupName,
-		status:      status,
-		conclusion:  conclusion,
+		org:          org,
+		repo:         repo,
+		runnerGroup:  runnerGroupName,
+		status:       status,
+		conclusion:   conclusion,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}, 50*time.Millisecond)
 }
 
@@ -589,16 +634,16 @@ func addValidSignatureHeader(t *testing.T, req *http.Request, payload []byte) {
 }
 
 type workflowJobObservation struct {
-	org, repo, state, runnerGroup string
-	seconds                       float64
+	org, repo, state, runnerGroup, workflowName, jobName string
+	seconds                                              float64
 }
 type workflowJobStatusCount struct {
-	org, repo, status, conclusion, runnerGroup string
+	org, repo, status, conclusion, runnerGroup, workflowName, jobName string
 }
 
 type workflowJobDurationCount struct {
-	org, repo, status, conclusion, runnerGroup string
-	seconds                                    float64
+	org, repo, status, conclusion, runnerGroup, workflowName, jobName string
+	seconds                                                           float64
 }
 
 type workflowRunObservation struct {
@@ -632,34 +677,40 @@ func NewTestPrometheusObserver(t *testing.T) *TestPrometheusObserver {
 	}
 }
 
-func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup string, seconds float64) {
+func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup, workflowName, jobName string, seconds float64) {
 	o.workFlowJobDurationObserved <- workflowJobObservation{
-		org:         org,
-		repo:        repo,
-		state:       state,
-		runnerGroup: runnerGroup,
-		seconds:     seconds,
+		org:          org,
+		repo:         repo,
+		state:        state,
+		runnerGroup:  runnerGroup,
+		workflowName: workflowName,
+		jobName:      jobName,
+		seconds:      seconds,
 	}
 }
 
-func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup string) {
+func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName string) {
 	o.workflowJobStatusCounted <- workflowJobStatusCount{
-		org:         org,
-		repo:        repo,
-		status:      status,
-		conclusion:  conclusion,
-		runnerGroup: runnerGroup,
+		org:          org,
+		repo:         repo,
+		status:       status,
+		conclusion:   conclusion,
+		runnerGroup:  runnerGroup,
+		workflowName: workflowName,
+		jobName:      jobName,
 	}
 }
 
-func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup string, seconds float64) {
+func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName string, seconds float64) {
 	o.workflowJobDurationCounted <- workflowJobDurationCount{
-		org:         org,
-		repo:        repo,
-		status:      status,
-		conclusion:  conclusion,
-		runnerGroup: runnerGroup,
-		seconds:     seconds,
+		org:          org,
+		repo:         repo,
+		status:       status,
+		conclusion:   conclusion,
+		runnerGroup:  runnerGroup,
+		workflowName: workflowName,
+		jobName:      jobName,
+		seconds:      seconds,
 	}
 }
 
