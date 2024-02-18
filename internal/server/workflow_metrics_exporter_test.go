@@ -27,7 +27,7 @@ const (
 
 type readerThatErrors struct{}
 
-func (readerThatErrors) Read(p []byte) (n int, err error) {
+func (readerThatErrors) Read(_ []byte) (n int, err error) {
 	return 0, errors.New("test error")
 }
 
