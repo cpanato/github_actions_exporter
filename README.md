@@ -74,7 +74,7 @@ make test
 ```bash
 cd example/
 export GITHUB_WEBHOOK_TOKEN="..."
-export GITHUB_TOKEN="..."
+export GITHUB_API_TOKEN="..."
 export GITHUB_ORG="..."
 docker-compose up --build
 ```

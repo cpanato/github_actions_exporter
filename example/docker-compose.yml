@@ -7,7 +7,7 @@ services:
       dockerfile: example/Dockerfile.dev
     command:
       - "--gh.github-webhook-token=$WEBHOOK_SECRET"
-      - "--gh.github-token=$GITHUB_TOKEN"
+      - "--gh.github-token=$GITHUB_API_TOKEN"
       - "--gh.github-org=$GITHUB_ORG"
     ports:
       - 9101:9101
