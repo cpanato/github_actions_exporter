@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v59/github"
 )
 
 func WorkflowRunEventFromJSON(data io.Reader) *github.WorkflowRunEvent {

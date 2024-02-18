@@ -79,7 +79,7 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 	return server
 }
 
-func (s *Server) Serve(ctx context.Context) error {
+func (s *Server) Serve(_ context.Context) error {
 	listenerMetrics, err := getListener(s.opts.ListenAddressMetrics, s.logger)
 	if err != nil {
 		return fmt.Errorf("get listener: %w", err)
