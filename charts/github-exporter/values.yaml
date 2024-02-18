@@ -19,8 +19,8 @@ deployment:
   replicaCount: 1
   image:
     repository: ghcr.io/cpanato/github_actions_exporter
-    tag: v0.6.1
-    digest: sha256:39d4c45327d2ec0f4fbac3197f5a862da49d66f775d7844c899f5158db95f37e
+    tag: v0.7.1
+    digest: sha256:0f7baabf04af6d1417955ac110b7234f862eadf2015f9f90a5c43efc1f8f9a35
     pullPolicy: IfNotPresent
 
   podLabels: {}

@@ -16,7 +16,7 @@ import (
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/go-kit/log"
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v59/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ const (
 
 type readerThatErrors struct{}
 
-func (readerThatErrors) Read(p []byte) (n int, err error) {
+func (readerThatErrors) Read(_ []byte) (n int, err error) {
 	return 0, errors.New("test error")
 }
 
