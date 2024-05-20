@@ -44,6 +44,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.ref_name }}
         run: |
+          make build
           docker build . -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           echo "digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} | awk 'sub(".*@","")')" > $GITHUB_OUTPUT
