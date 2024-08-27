@@ -23,8 +23,12 @@ spec:
         app.kubernetes.io/name: {{ include "github-exporter.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
         helm.sh/chart: {{ include "github-exporter.chart" . }}
-        {{- if .Values.podLabels -}}
-        {{ .Values.podLabels | toYaml | nindent 8 -}}
+        {{- if .Values.deployment.podLabels -}}
+        {{ .Values.deployment.podLabels | toYaml | nindent 8 -}}
+        {{- end }}
+      annotations:
+        {{- with .Values.deployment.podAnnotations }}
+          {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       containers:
