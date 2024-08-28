@@ -15,7 +15,7 @@ import (
 	"github.com/cpanato/github_actions_exporter/model"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v59/github"
 )
 
 // WorkflowMetricsExporter struct to hold some information

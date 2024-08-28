@@ -47,7 +47,7 @@ make build
 ## Run the binary
 
 ```bash
-./github_actions_exporter --gh.github-webhook-token="MY_TOKEN" --gh.github-api-token="Accesstoken" --gh.github-org="honk_org"
+./github-actions-exporter --gh.github-webhook-token="MY_TOKEN" --gh.github-api-token="Accesstoken" --gh.github-org="honk_org"
 ```
 
 ## Docker

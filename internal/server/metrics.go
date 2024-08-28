@@ -67,6 +67,13 @@ var (
 	},
 		[]string{"org", "user", "host_type"},
 	)
+
+	workflowQueueSize = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "workflow_queue_size",
+		Help: "Number of queued workflow runs.",
+	},
+		[]string{},
+	)
 )
 
 func init() {
@@ -80,6 +87,8 @@ func init() {
 	prometheus.MustRegister(includedMinutesUsedActions)
 	prometheus.MustRegister(totalPaidMinutesActions)
 	prometheus.MustRegister(totalMinutesUsedByHostTypeActions)
+	prometheus.MustRegister(workflowQueueSize)
+
 }
 
 type WorkflowObserver interface {
