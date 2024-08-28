@@ -1,4 +1,7 @@
-FROM cgr.dev/chainguard/static:latest
+FROM ubuntu:latest
+
+# ADD ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 COPY github-actions-exporter /github-actions-exporter
 

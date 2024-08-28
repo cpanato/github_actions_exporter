@@ -26,7 +26,7 @@ var (
 	gitHubAPIToken              = kingpin.Flag("gh.github-api-token", "GitHub API Token.").Envar("GITHUB_API_TOKEN").Default("").String()
 	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Envar("GITHUB_ORG").Default("").String()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
-	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("5").Int()
+	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Default("120").Int()
 )
 
 func init() {

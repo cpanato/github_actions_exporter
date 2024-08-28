@@ -12,4 +12,4 @@ test:
 
 .PHONY: build
 build:
-	go build -o github-actions-exporter .
+	GOOS=linux GOARCH=amd64 CG_ENABLED=1 go build -o github-actions-exporter .
