@@ -77,11 +77,11 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event",
 			"org", event.GetRepo().GetOwner().GetLogin(),
 			"repo", event.GetRepo().GetName(),
-			"branch", event.GetWorkflowJob().GetHeadBranch(),
 			"runId", event.GetWorkflowJob().GetRunID(),
 			"action", event.GetAction(),
 			"workflow_name", event.GetWorkflowJob().GetWorkflowName(),
-			"job_name", event.GetWorkflowJob().GetName())
+			"job_name", event.GetWorkflowJob().GetName(),
+			"branch", event.GetWorkflowJob().GetHeadBranch())
 		go c.CollectWorkflowJobEvent(event)
 	case "workflow_run":
 		event := model.WorkflowRunEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
@@ -100,10 +100,11 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.WorkflowJobEvent) {
 	repo := event.GetRepo().GetName()
 	org := event.GetRepo().GetOwner().GetLogin()
-	branch := event.WorkflowJob.GetHeadBranch()
+
 	action := event.GetAction()
 
 	workflowJob := event.GetWorkflowJob()
+	branch := workflowJob.GetHeadBranch()
 	runnerGroup := workflowJob.GetRunnerGroupName()
 	conclusion := workflowJob.GetConclusion()
 	status := workflowJob.GetStatus()
@@ -122,7 +123,7 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 
 		firstStep := workflowJob.Steps[0]
 		queuedSeconds := firstStep.StartedAt.Time.Sub(workflowJob.GetStartedAt().Time).Seconds()
-		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, branch, "queued", runnerGroup, workflowName, jobName, math.Max(0, queuedSeconds))
+		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "queued", runnerGroup, workflowName, jobName, branch, math.Max(0, queuedSeconds))
 	case "completed":
 		if workflowJob.StartedAt == nil || workflowJob.CompletedAt == nil {
 			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of completed event steps are missing timestamps")
@@ -130,11 +131,11 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 		}
 
 		jobSeconds := math.Max(0, workflowJob.GetCompletedAt().Time.Sub(workflowJob.GetStartedAt().Time).Seconds())
-		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, branch, "in_progress", runnerGroup, workflowName, jobName, jobSeconds)
-		c.PrometheusObserver.CountWorkflowJobDuration(org, repo, branch, status, conclusion, runnerGroup, workflowName, jobName, jobSeconds)
+		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, "in_progress", runnerGroup, workflowName, jobName, branch, jobSeconds)
+		c.PrometheusObserver.CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch, jobSeconds)
 	}
 
-	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, branch, status, conclusion, runnerGroup, workflowName, jobName)
+	c.PrometheusObserver.CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch)
 }
 
 func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.WorkflowRunEvent) {
