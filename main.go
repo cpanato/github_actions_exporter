@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/cpanato/github_actions_exporter/internal/server"
+	"github.com/fernride/github_actions_exporter/internal/server"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/promlog"

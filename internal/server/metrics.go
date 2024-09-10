@@ -96,8 +96,8 @@ type WorkflowObserver interface {
 	CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch string)
 	CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch string, seconds float64)
 
-	ObserveWorkflowRunDuration(org, repo, workflow, conclusion, branch string, seconds float64)
-	CountWorkflowRunStatus(org, repo, status, conclusion, workflow, branch string)
+	ObserveWorkflowRunDuration(org, repo, branch, workflow, conclusion string, seconds float64)
+	CountWorkflowRunStatus(org, repo, branch, status, conclusion, workflow string)
 }
 
 var _ WorkflowObserver = (*PrometheusObserver)(nil)

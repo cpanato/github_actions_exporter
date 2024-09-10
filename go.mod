@@ -1,4 +1,4 @@
-module github.com/cpanato/github_actions_exporter
+module github.com/fernride/github_actions_exporter
 
 go 1.22
 

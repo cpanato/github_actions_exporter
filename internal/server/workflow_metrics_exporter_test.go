@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cpanato/github_actions_exporter/internal/server"
+	"github.com/fernride/github_actions_exporter/internal/server"
 	"github.com/go-kit/log"
 	"github.com/google/go-github/v59/github"
 	"github.com/stretchr/testify/assert"
@@ -457,9 +457,9 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoStart
 		org:          org,
 		repo:         repo,
 		branch:       branch,
-		runnerGroup:  runnerGroupName,
 		status:       status,
 		conclusion:   conclusion,
+		runnerGroup:  runnerGroupName,
 		workflowName: workflowName,
 		jobName:      jobName,
 	}, 50*time.Millisecond)
@@ -703,7 +703,7 @@ func NewTestPrometheusObserver(t *testing.T) *TestPrometheusObserver {
 	}
 }
 
-func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, branch, state, runnerGroup, workflowName, jobName string, seconds float64) {
+func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, state, runnerGroup, workflowName, jobName, branch string, seconds float64) {
 	o.workFlowJobDurationObserved <- workflowJobObservation{
 		org:          org,
 		repo:         repo,
@@ -716,7 +716,7 @@ func (o *TestPrometheusObserver) ObserveWorkflowJobDuration(org, repo, branch, s
 	}
 }
 
-func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, branch, status, conclusion, runnerGroup, workflowName, jobName string) {
+func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch string) {
 	o.workflowJobStatusCounted <- workflowJobStatusCount{
 		org:          org,
 		repo:         repo,
@@ -729,7 +729,7 @@ func (o *TestPrometheusObserver) CountWorkflowJobStatus(org, repo, branch, statu
 	}
 }
 
-func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, branch, status, conclusion, runnerGroup, workflowName, jobName string, seconds float64) {
+func (o *TestPrometheusObserver) CountWorkflowJobDuration(org, repo, status, conclusion, runnerGroup, workflowName, jobName, branch string, seconds float64) {
 	o.workflowJobDurationCounted <- workflowJobDurationCount{
 		org:          org,
 		repo:         repo,
