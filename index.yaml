@@ -3,6 +3,18 @@ entries:
   github-exporter:
   - apiVersion: v1
     appVersion: 0.7.1
+    created: "2024-10-08T16:33:15.608581061Z"
+    description: GitHub exporter
+    digest: c225a57fff68455e0badde8cc940c088eec015cf8bed495b6881cffa074564d7
+    home: https://github.com/cpanato/github_actions_exporter
+    maintainers:
+    - name: cpanato
+    name: github-exporter
+    urls:
+    - https://github.com/cpanato/github_actions_exporter/releases/download/github-exporter-0.2.1/github-exporter-0.2.1.tgz
+    version: 0.2.1
+  - apiVersion: v1
+    appVersion: 0.7.1
     created: "2024-02-18T16:45:12.755542323Z"
     description: GitHub exporter
     digest: 15593aa4cea0299f89f15ad9111a1ec24b6c2d27380b52dbc48f185f1013d5de
@@ -37,4 +49,4 @@ entries:
     urls:
     - https://github.com/cpanato/github_actions_exporter/releases/download/github-exporter-0.1.0/github-exporter-0.1.0.tgz
     version: 0.1.0
-generated: "2024-02-18T16:45:12.755555287Z"
+generated: "2024-10-08T16:33:15.60859642Z"
