@@ -203,7 +203,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventFirstStep(t
 			Steps: []*github.TaskStep{
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt},
-					Status: &statusInProgress,
+					Status:    &statusInProgress,
 				},
 			},
 			RunnerGroupName: &runnerGroupName,
@@ -280,11 +280,11 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventSecondStep(
 			Steps: []*github.TaskStep{
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt},
-					Status: &statusCompleted,
+					Status:    &statusCompleted,
 				},
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
-					Status: &statusInProgress,
+					Status:    &statusInProgress,
 				},
 			},
 			RunnerGroupName: &runnerGroupName,
@@ -300,7 +300,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventSecondStep(
 
 	// Then
 	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
-	observer.assertNoWorkflowJobDurationObservation(50*time.Millisecond)
+	observer.assertNoWorkflowJobDurationObservation(50 * time.Millisecond)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
 		org:          org,
 		repo:         repo,
