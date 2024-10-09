@@ -120,6 +120,12 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 			break
 		}
 
+		if len(workflowJob.Steps) > 1 {
+			// If there are more than one steps, we are receiving an update of an already running job.
+			// Don't count the queued time again since it's already running.
+			break
+		}
+
 		firstStep := workflowJob.Steps[0]
 		queuedSeconds := firstStep.StartedAt.Time.Sub(workflowJob.GetStartedAt().Time).Seconds()
 		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, branch, "queued", runnerGroup, workflowName, jobName, math.Max(0, queuedSeconds))
