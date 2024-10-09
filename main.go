@@ -12,6 +12,7 @@ import (
 	"github.com/fernride/github_actions_exporter/internal/server"
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
+	collectors_version "github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/common/promlog"
 	"github.com/prometheus/common/promlog/flag"
 	"github.com/prometheus/common/version"
@@ -32,7 +33,7 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(version.NewCollector("ghactions_exporter"))
+	prometheus.MustRegister(collectors_version.NewCollector("ghactions_exporter"))
 }
 
 func main() {

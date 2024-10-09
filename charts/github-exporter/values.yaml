@@ -19,11 +19,12 @@ deployment:
   replicaCount: 1
   image:
     repository: ghcr.io/cpanato/github_actions_exporter
-    tag: v0.7.1
-    digest: sha256:0f7baabf04af6d1417955ac110b7234f862eadf2015f9f90a5c43efc1f8f9a35
+    tag: v0.8.0
+    digest: sha256:b0d50195686567de51b1ede25e2a6538719921f1a04a3cc763d89184ef86f22c
     pullPolicy: IfNotPresent
 
   podLabels: {}
+  podAnnotations: {}
 
   resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

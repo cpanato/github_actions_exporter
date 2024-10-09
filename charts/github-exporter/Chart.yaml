@@ -1,8 +1,8 @@
 apiVersion: v1
 description: GitHub exporter
 name: github-exporter
-version: 0.2.0
-appVersion: 0.7.1
+version: 0.3.0
+appVersion: 0.8.0
 home: https://github.com/cpanato/github_actions_exporter
 maintainers:
   - name: cpanato

@@ -16,7 +16,7 @@ import (
 
 	"github.com/fernride/github_actions_exporter/internal/server"
 	"github.com/go-kit/log"
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,7 +165,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 	}, 50*time.Millisecond)
 }
 
-func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing.T) {
+func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventFirstStep(t *testing.T) {
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
@@ -184,7 +184,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 	stepStartedAt := jobStartedAt.Add(time.Duration(expectedDuration) * time.Second)
 	runnerGroupName := "runner-group"
 	action := "in_progress"
-	status := "in_progress"
+	statusInProgress := "in_progress"
 	workflowName := "Build and test"
 	jobName := "Test"
 
@@ -198,14 +198,12 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 		},
 		WorkflowJob: &github.WorkflowJob{
 			HeadBranch: &branch,
-			Status:     &status,
+			Status:     &statusInProgress,
 			StartedAt:  &github.Timestamp{Time: jobStartedAt},
 			Steps: []*github.TaskStep{
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt},
-				},
-				{
-					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
+					Status:    &statusInProgress,
 				},
 			},
 			RunnerGroupName: &runnerGroupName,
@@ -231,6 +229,78 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEvent(t *testing
 		workflowName: workflowName,
 		jobName:      jobName,
 	}, 50*time.Millisecond)
+	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
+		org:          org,
+		repo:         repo,
+		branch:       branch,
+		runnerGroup:  runnerGroupName,
+		status:       action,
+		conclusion:   "",
+		workflowName: workflowName,
+		jobName:      jobName,
+	}, 50*time.Millisecond)
+}
+
+func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventSecondStep(t *testing.T) {
+	// Given
+	observer := NewTestPrometheusObserver(t)
+	subject := server.WorkflowMetricsExporter{
+		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Opts: server.Opts{
+			GitHubToken: webhookSecret,
+		},
+		PrometheusObserver: observer,
+	}
+
+	repo := "some-repo"
+	org := "someone"
+	branch := "some-branch"
+	expectedDuration := 10.0
+	jobStartedAt := time.Unix(1650308740, 0)
+	stepStartedAt := jobStartedAt.Add(time.Duration(expectedDuration) * time.Second)
+	runnerGroupName := "runner-group"
+	action := "in_progress"
+	statusInProgress := "in_progress"
+	statusCompleted := "completed"
+	workflowName := "Build and test"
+	jobName := "Test"
+
+	event := github.WorkflowJobEvent{
+		Action: &action,
+		Repo: &github.Repository{
+			Name: &repo,
+			Owner: &github.User{
+				Login: &org,
+			},
+		},
+		WorkflowJob: &github.WorkflowJob{
+			HeadBranch: &branch,
+			Status:     &statusInProgress,
+			StartedAt:  &github.Timestamp{Time: jobStartedAt},
+			Steps: []*github.TaskStep{
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt},
+					Status:    &statusCompleted,
+				},
+				{
+					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
+					Status:    &statusInProgress,
+				},
+			},
+			RunnerGroupName: &runnerGroupName,
+			WorkflowName:    &workflowName,
+			Name:            &jobName,
+		},
+	}
+	req := testWebhookRequest(t, "/anything", "workflow_job", event)
+
+	// When
+	res := httptest.NewRecorder()
+	subject.HandleGHWebHook(res, req)
+
+	// Then
+	assert.Equal(t, http.StatusAccepted, res.Result().StatusCode)
+	observer.assertNoWorkflowJobDurationObservation(50 * time.Millisecond)
 	observer.assertWorkflowJobStatusCount(workflowJobStatusCount{
 		org:          org,
 		repo:         repo,
@@ -281,9 +351,6 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 			Steps: []*github.TaskStep{
 				{
 					StartedAt: &github.Timestamp{Time: stepStartedAt},
-				},
-				{
-					StartedAt: &github.Timestamp{Time: stepStartedAt.Add(5 * time.Second)},
 				},
 			},
 			RunnerGroupName: &runnerGroupName,

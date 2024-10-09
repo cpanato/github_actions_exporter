@@ -15,7 +15,7 @@ import (
 	"github.com/fernride/github_actions_exporter/model"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v66/github"
 )
 
 // WorkflowMetricsExporter struct to hold some information
@@ -118,6 +118,12 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 
 		if len(workflowJob.Steps) == 0 {
 			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of in_progress event as event has no steps")
+			break
+		}
+
+		if len(workflowJob.Steps) > 1 {
+			// If there are more than one steps, we are receiving an update of an already running job.
+			// Don't count the queued time again since it's already running.
 			break
 		}
 
