@@ -1,0 +1,29 @@
+name: Check Helm Docs
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+
+jobs:
+  readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+
+      - name: Run Helm Docs and check the outcome
+        run: |
+          make docs
+          exit_code=$(git diff --exit-code)
+          exit ${exit_code}
+
+      - name: Print a comment in case of failure
+        run: |
+          echo "The README.md files are not up to date.
+
+          Please, run \"make docs\" before pushing."
+          exit 1
+        if: |
+          failure() && github.event.pull_request.head.repo.full_name == github.repository
