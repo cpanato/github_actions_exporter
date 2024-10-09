@@ -1,5 +1,7 @@
 all:: lint test build
 
+DOCS_IMAGE_VERSION="v1.14.2"
+
 .PHONY: lint
 lint:
 	@echo ">> running golangci-lint"
@@ -13,3 +15,13 @@ test:
 .PHONY: build
 build:
 	go build -o github-actions-exporter .
+
+.PHONY: docs
+docs:
+	@docker run \
+	--rm \
+	--workdir=/helm-docs \
+	--volume "$$(pwd):/helm-docs" \
+	-u $$(id -u) \
+	jnorwood/helm-docs:$(DOCS_IMAGE_VERSION) \
+	helm-docs -c ./charts/$* -t ./README.md.gotmpl -o ./README.md
