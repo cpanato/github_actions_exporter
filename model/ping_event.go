@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v66/github"
 )
 
 // PingEventFromJSON decodes the incomming message to a github.PingEvent

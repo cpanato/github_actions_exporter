@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v66/github"
 	"golang.org/x/oauth2"
 )
 
