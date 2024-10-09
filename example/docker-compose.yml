@@ -15,7 +15,7 @@ services:
       - 9101
 
   prometheus:
-    image: prom/prometheus:v2.34.0
+    image: prom/prometheus:v2.54.1
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
