@@ -7,9 +7,9 @@ require (
 	github.com/go-kit/log v0.2.1
 	github.com/google/go-github/v66 v66.0.0
 	github.com/prometheus/client_golang v1.20.4
-	github.com/prometheus/common v0.55.0
+	github.com/prometheus/common v0.60.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.23.0
 )
 
 require (
@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/xhit/go-str2duration/v2 v2.1.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
