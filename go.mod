@@ -8,8 +8,8 @@ require (
 	github.com/google/go-github/v66 v66.0.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.60.1
-	github.com/stretchr/testify v1.9.0
-	golang.org/x/oauth2 v0.23.0
+	github.com/stretchr/testify v1.10.0
+	golang.org/x/oauth2 v0.24.0
 )
 
 require (
