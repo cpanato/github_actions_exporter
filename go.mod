@@ -1,6 +1,6 @@
 module github.com/cpanato/github_actions_exporter
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.60.1
 	github.com/stretchr/testify v1.10.0
-	golang.org/x/oauth2 v0.26.0
+	golang.org/x/oauth2 v0.30.0
 )
 
 require (
