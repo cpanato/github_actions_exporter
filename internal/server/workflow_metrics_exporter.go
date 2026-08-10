@@ -75,7 +75,7 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		if event == nil {
-			_ = level.Info(c.Logger).Log("Workflow event is nil due to decoding issues")
+			_ = level.Info(c.Logger).Log("msg", "Workflow event is nil due to decoding issues")
 			return
 		}
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event",
