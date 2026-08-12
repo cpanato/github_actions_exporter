@@ -34,7 +34,7 @@ func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsEx
 	}
 }
 
-// handleGHWebHook responds to POST /gh_event, when receive a event from GitHub.
+// HandleGHWebHook responds to POST /gh_event, when it receives an event from GitHub.
 func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -58,7 +58,7 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		return
 	}
 
-	_ = level.Debug(c.Logger).Log("msg", "received webhook", "payload", string(buf))
+	_ = level.Debug(c.Logger).Log("msg", "received webhook", "contentType", r.Header.Get("Content-Type"), "payload", string(buf))
 
 	eventType := r.Header.Get("X-GitHub-Event")
 	switch eventType {
@@ -74,6 +74,10 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		return
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
+		if event == nil {
+			_ = level.Info(c.Logger).Log("msg", "Workflow event is nil due to decoding issues")
+			return
+		}
 		_ = level.Info(c.Logger).Log("msg", "got workflow_job event",
 			"org", event.GetRepo().GetOwner().GetLogin(),
 			"repo", event.GetRepo().GetName(),
