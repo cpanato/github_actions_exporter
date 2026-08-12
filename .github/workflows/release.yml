@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
+
+permissions: {}
+
 jobs:
   release:
 
@@ -25,8 +28,9 @@ jobs:
     steps:
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
-          go-version: '1.23'
+          go-version: '1.26'
           check-latest: true
+          cache: false
 
       - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
       - uses: anchore/sbom-action/download-syft@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
@@ -41,6 +45,8 @@ jobs:
 
       - name: Check out code onto GOPATH
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: true
 
       - name: Set tag output
         id: get_tag
