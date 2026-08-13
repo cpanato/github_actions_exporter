@@ -28,7 +28,7 @@ builds:
       - arm64
       - arm
     goarm:
-      - 7
+      - "7"
     ldflags: |
       -X github.com/prometheus/common/version.Version={{.Version}}
       -X github.com/prometheus/common/version.Revision={{.Commit}}
@@ -37,7 +37,8 @@ builds:
       -X github.com/prometheus/common/version.BuildDate={{.Date}}
 
 archives:
-  - format: binary
+  - formats:
+      - binary
     allow_different_binary_count: true
 
 checksum:
@@ -60,7 +61,8 @@ kos:
   - id: ko-image
     main: .
     base_image: cgr.dev/chainguard/static
-    repository: ghcr.io/cpanato
+    repositories:
+      - ghcr.io/cpanato
     platforms:
       - all
     tags:
@@ -75,5 +77,8 @@ release:
   github:
     owner: cpanato
     name: github_actions_exporter
-  draft: false
+  # Keep the release as a draft so the pipeline can still add assets to it
+  # (immutable releases forbid uploading assets once published). The release
+  # workflow publishes it in its last job.
+  draft: true
   prerelease: allow

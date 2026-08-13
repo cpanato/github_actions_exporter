@@ -13,7 +13,7 @@ jobs:
 
     outputs:
       hashes: ${{ steps.hash.outputs.hashes }}
-      tag_name: ${{ steps.tag.outputs.tag_name }}
+      tag_name: ${{ steps.get_tag.outputs.tag_name }}
 
     runs-on: ubuntu-latest
 
@@ -90,3 +90,24 @@ jobs:
       base64-subjects: "${{ needs.release.outputs.hashes }}"
       upload-assets: true # upload to a new release
       upload-tag-name: "${{ needs.release.outputs.tag_name }}"
+      # GoReleaser leaves the release as a draft; keep it that way when
+      # attaching the provenance, otherwise the upload would target an
+      # immutable (published) release and fail.
+      draft-release: "true"
+
+  # Publish the draft release only after every asset (GoReleaser artifacts and
+  # SLSA provenance) has been attached, since a published release is immutable.
+  publish-release:
+    needs:
+      - release
+      - provenance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # To publish the draft release.
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release.outputs.tag_name }}
+        run: gh release edit "${TAG_NAME}" --draft=false
