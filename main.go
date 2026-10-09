@@ -3,18 +3,16 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	collectors_version "github.com/prometheus/client_golang/prometheus/collectors/version"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog"
+	promslogflag "github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/common/version"
 )
 
@@ -35,18 +33,18 @@ func init() {
 }
 
 func main() {
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	promslogConfig := &promslog.Config{}
+	promslogflag.AddFlags(kingpin.CommandLine, promslogConfig)
 	kingpin.Version(version.Print("ghactions_exporter"))
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
-	logger := promlog.New(promlogConfig)
+	logger := promslog.New(promslogConfig)
 
-	_ = level.Info(logger).Log("msg", "Starting ghactions_exporter", "version", version.Info())
-	_ = level.Info(logger).Log("build_context", version.BuildContext())
+	logger.Info("Starting ghactions_exporter", "version", version.Info())
+	logger.Info("Build context", "build_context", version.BuildContext())
 
 	if err := validateFlags(*githubWebhookToken); err != nil {
-		_ = level.Error(logger).Log("msg", "Missing configure flags", "err", err)
+		logger.Error("Missing configure flags", "err", err)
 		os.Exit(1)
 	}
 
@@ -67,16 +65,16 @@ func main() {
 	go func() {
 		err := srv.Serve(context.Background())
 		if err != nil {
-			_ = level.Error(logger).Log("msg", "Server closed", "err", err)
+			logger.Error("Server closed", "err", err)
 		} else {
-			_ = level.Info(logger).Log("msg", "Server closed")
+			logger.Info("Server closed")
 		}
 	}()
 
-	_ = level.Info(logger).Log("msg", fmt.Sprintf("Signal received: %v. Exiting...", <-signalChan))
+	logger.Info("Signal received. Exiting...", "signal", (<-signalChan).String())
 	err := srv.Shutdown(context.Background())
 	if err != nil {
-		_ = level.Error(logger).Log("msg", "Error occurred while closing the server", "err", err)
+		logger.Error("Error occurred while closing the server", "err", err)
 		os.Exit(1)
 	}
 	os.Exit(0)

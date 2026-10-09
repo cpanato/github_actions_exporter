@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
 )
@@ -30,7 +29,7 @@ type Opts struct {
 }
 
 type Server struct {
-	logger                  log.Logger
+	logger                  *slog.Logger
 	serverMetrics           *http.Server
 	serverIngress           *http.Server
 	workflowMetricsExporter *WorkflowMetricsExporter
@@ -38,7 +37,7 @@ type Server struct {
 	opts                    Opts
 }
 
-func NewServer(logger log.Logger, opts Opts) *Server {
+func NewServer(logger *slog.Logger, opts Opts) *Server {
 	muxMetrics := http.NewServeMux()
 	httpServerMetrics := &http.Server{
 		Handler:           muxMetrics,
@@ -48,11 +47,11 @@ func NewServer(logger log.Logger, opts Opts) *Server {
 	billingExporter := NewBillingMetricsExporter(logger, opts)
 	err := billingExporter.StartOrgBilling(context.TODO())
 	if err != nil {
-		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting org billing: %v", err))
+		logger.Info("not exporting org billing", "reason", err)
 	}
 	err = billingExporter.StartUserBilling(context.TODO())
 	if err != nil {
-		_ = level.Info(logger).Log("msg", fmt.Sprintf("not exporting user billing: %v", err))
+		logger.Info("not exporting user billing", "reason", err)
 	}
 
 	muxIngress := http.NewServeMux()
@@ -90,12 +89,12 @@ func (s *Server) Serve(_ context.Context) error {
 		return fmt.Errorf("get listener: %w", err)
 	}
 
-	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Metrics has successfully started")
+	s.logger.Info("GitHub Actions Prometheus Exporter Metrics has successfully started")
 	go func() {
 		_ = s.serverMetrics.Serve(listenerMetrics)
 	}()
 
-	_ = level.Info(s.logger).Log("msg", "GitHub Actions Prometheus Exporter Ingress has successfully started")
+	s.logger.Info("GitHub Actions Prometheus Exporter Ingress has successfully started")
 	err = s.serverIngress.Serve(listenerIgress)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("server ingress closed: %w", err)
@@ -129,7 +128,7 @@ func (s *Server) handleRoot(w http.ResponseWriter, _ *http.Request) {
 	`))
 }
 
-func getListener(listenAddress string, logger log.Logger) (net.Listener, error) {
+func getListener(listenAddress string, logger *slog.Logger) (net.Listener, error) {
 	var listener net.Listener
 	var err error
 
@@ -147,7 +146,7 @@ func getListener(listenAddress string, logger log.Logger) (net.Listener, error) 
 		return listener, err
 	}
 
-	_ = level.Info(logger).Log("msg", fmt.Sprintf("Listening on %s", listenAddress))
+	logger.Info("Listening", "address", listenAddress)
 	return listener, nil
 }
 

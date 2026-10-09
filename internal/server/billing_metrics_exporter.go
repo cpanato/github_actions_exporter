@@ -3,21 +3,20 @@ package server
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/google/go-github/v66/github"
 	"golang.org/x/oauth2"
 )
 
 type BillingMetricsExporter struct {
 	GHClient *github.Client
-	Logger   log.Logger
+	Logger   *slog.Logger
 	Opts     Opts
 }
 
-func NewBillingMetricsExporter(logger log.Logger, opts Opts) *BillingMetricsExporter {
+func NewBillingMetricsExporter(logger *slog.Logger, opts Opts) *BillingMetricsExporter {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: opts.GitHubAPIToken},
@@ -47,7 +46,7 @@ func (c *BillingMetricsExporter) StartOrgBilling(ctx context.Context) error {
 			case <-ticker.C:
 				c.collectOrgBilling(ctx)
 			case <-ctx.Done():
-				_ = level.Info(c.Logger).Log("msg", "stopped polling for org billing metrics")
+				c.Logger.Info("stopped polling for org billing metrics")
 				return
 			}
 		}
@@ -72,7 +71,7 @@ func (c *BillingMetricsExporter) StartUserBilling(ctx context.Context) error {
 				c.collectUserBilling(ctx)
 			case <-ctx.Done():
 				ticker.Stop()
-				_ = level.Info(c.Logger).Log("msg", "stopped polling for user billing metrics")
+				c.Logger.Info("stopped polling for user billing metrics")
 				return
 			}
 		}
@@ -85,7 +84,7 @@ func (c *BillingMetricsExporter) StartUserBilling(ctx context.Context) error {
 func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
 	actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingOrg(ctx, c.Opts.GitHubOrg)
 	if err != nil {
-		_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
+		c.Logger.Error("failed to retrieve the actions billing for an org", "org", c.Opts.GitHubOrg, "err", err)
 		return
 	}
 
@@ -101,7 +100,7 @@ func (c *BillingMetricsExporter) collectOrgBilling(ctx context.Context) {
 func (c *BillingMetricsExporter) collectUserBilling(ctx context.Context) {
 	actionsBilling, _, err := c.GHClient.Billing.GetActionsBillingUser(ctx, c.Opts.GitHubUser)
 	if err != nil {
-		_ = c.Logger.Log("msg", "failed to retrieve the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
+		c.Logger.Error("failed to retrieve the actions billing for an user", "user", c.Opts.GitHubUser, "err", err)
 		return
 	}
 

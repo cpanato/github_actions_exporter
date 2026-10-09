@@ -8,25 +8,24 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"strings"
 
 	"github.com/cpanato/github_actions_exporter/model"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/google/go-github/v66/github"
 )
 
 // WorkflowMetricsExporter struct to hold some information
 type WorkflowMetricsExporter struct {
 	GHClient           *github.Client
-	Logger             log.Logger
+	Logger             *slog.Logger
 	Opts               Opts
 	PrometheusObserver WorkflowObserver
 }
 
-func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsExporter {
+func NewWorkflowMetricsExporter(logger *slog.Logger, opts Opts) *WorkflowMetricsExporter {
 	return &WorkflowMetricsExporter{
 		Logger:             logger,
 		Opts:               opts,
@@ -38,7 +37,7 @@ func NewWorkflowMetricsExporter(logger log.Logger, opts Opts) *WorkflowMetricsEx
 func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(r.Body)
 	if err != nil {
-		_ = level.Error(c.Logger).Log("msg", "error reading body: %v", err)
+		c.Logger.Error("error reading body", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -46,26 +45,26 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 
 	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
 	if receivedHash[0] != "sha1" {
-		_ = level.Error(c.Logger).Log("msg", "invalid webhook hash signature: SHA1")
+		c.Logger.Error("invalid webhook hash signature: SHA1")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	err = validateSignature(c.Opts.GitHubToken, receivedHash, buf)
 	if err != nil {
-		_ = level.Error(c.Logger).Log("msg", "invalid token", "err", err)
+		c.Logger.Error("invalid token", "err", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
-	_ = level.Debug(c.Logger).Log("msg", "received webhook", "contentType", r.Header.Get("Content-Type"), "payload", string(buf))
+	c.Logger.Debug("received webhook", "contentType", r.Header.Get("Content-Type"), "payload", string(buf))
 
 	eventType := r.Header.Get("X-GitHub-Event")
 	switch eventType {
 	case "ping":
 		pingEvent := model.PingEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		if pingEvent == nil {
-			_ = level.Info(c.Logger).Log("msg", "ping event", "hookID", pingEvent.GetHookID())
+			c.Logger.Info("ping event", "hookID", pingEvent.GetHookID())
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -75,10 +74,10 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 	case "workflow_job":
 		event := model.WorkflowJobEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		if event == nil {
-			_ = level.Info(c.Logger).Log("msg", "Workflow event is nil due to decoding issues")
+			c.Logger.Info("Workflow event is nil due to decoding issues")
 			return
 		}
-		_ = level.Info(c.Logger).Log("msg", "got workflow_job event",
+		c.Logger.Info("got workflow_job event",
 			"org", event.GetRepo().GetOwner().GetLogin(),
 			"repo", event.GetRepo().GetName(),
 			"branch", event.GetWorkflowJob().GetHeadBranch(),
@@ -89,10 +88,10 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 		go c.CollectWorkflowJobEvent(event)
 	case "workflow_run":
 		event := model.WorkflowRunEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
-		_ = level.Info(c.Logger).Log("msg", "got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "branch", event.GetWorkflowRun().GetHeadBranch(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
+		c.Logger.Info("got workflow_run event", "org", event.GetRepo().GetOwner().GetLogin(), "repo", event.GetRepo().GetName(), "branch", event.GetWorkflowRun().GetHeadBranch(), "workflow_name", event.GetWorkflow().GetName(), "runNumber", event.GetWorkflowRun().GetRunNumber(), "action", event.GetAction())
 		go c.CollectWorkflowRunEvent(event)
 	default:
-		_ = level.Info(c.Logger).Log("msg", "not implemented", "eventType", eventType)
+		c.Logger.Info("not implemented", "eventType", eventType)
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
@@ -120,7 +119,7 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 	case "in_progress":
 
 		if len(workflowJob.Steps) == 0 {
-			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of in_progress event as event has no steps")
+			c.Logger.Debug("unable to calculate job duration of in_progress event as event has no steps")
 			break
 		}
 
@@ -135,7 +134,7 @@ func (c *WorkflowMetricsExporter) CollectWorkflowJobEvent(event *github.Workflow
 		c.PrometheusObserver.ObserveWorkflowJobDuration(org, repo, branch, "queued", runnerGroup, workflowName, jobName, math.Max(0, queuedSeconds))
 	case "completed":
 		if workflowJob.StartedAt == nil || workflowJob.CompletedAt == nil {
-			_ = level.Debug(c.Logger).Log("msg", "unable to calculate job duration of completed event steps are missing timestamps")
+			c.Logger.Debug("unable to calculate job duration of completed event steps are missing timestamps")
 			break
 		}
 
