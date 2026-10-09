@@ -1,4 +1,4 @@
-## Unreleased
+## 0.11.0 / 2026-10-09
 
 **Breaking / action required**
 
@@ -16,6 +16,8 @@
 - Fix the ping event handling and stop the billing pollers on shutdown (#300).
 - Build with Go 1.27.2 and update dependencies (`prometheus/client_golang` 1.25, `prometheus/common` 0.72, `go-github` v92).
 - Refresh the README: metrics and flags reference, webhook events, Docker image and example queries (#298, #299).
+- Add a security policy, issue templates and tests for the webhook event decoders (#303, #304).
+- Bump the Helm chart to 0.4.0 (#302). The chart for this release needs another bump to the new image once it is published.
 
 ## 0.3.0 / 2022-04-20
 
