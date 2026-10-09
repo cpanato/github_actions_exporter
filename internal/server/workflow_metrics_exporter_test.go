@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -613,7 +613,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 	conclusion := "success"
 
 	event := github.WorkflowRunEvent{
-		Action: github.String("completed"),
+		Action: new("completed"),
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -677,7 +677,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 	branch := "some-branch"
 
 	event := github.WorkflowRunEvent{
-		Action: github.String("not_a_completed_action"),
+		Action: new("not_a_completed_action"),
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -689,7 +689,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 		},
 		WorkflowRun: &github.WorkflowRun{
 			HeadBranch:   &branch,
-			Status:       github.String("completed"),
+			Status:       new("completed"),
 			RunStartedAt: &github.Timestamp{Time: runStartTime},
 			UpdatedAt:    &github.Timestamp{Time: runUpdatedTime},
 		},
@@ -706,7 +706,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 	observer.assertNoWorkflowRunStatusCount(1 * time.Second)
 }
 
-func testWebhookRequest(t *testing.T, url, event string, payload interface{}) *http.Request {
+func testWebhookRequest(t *testing.T, url, event string, payload any) *http.Request {
 	b, err := json.Marshal(payload)
 	require.NoError(t, err)
 
