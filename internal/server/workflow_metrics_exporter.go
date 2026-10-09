@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha1" // nolint: gosec
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"log/slog"
 	"math"
@@ -33,26 +35,28 @@ func NewWorkflowMetricsExporter(logger *slog.Logger, opts Opts) *WorkflowMetrics
 	}
 }
 
+// maxWebhookBodyBytes is the maximum payload size GitHub delivers for a webhook (25 MB).
+const maxWebhookBodyBytes = 25 << 20
+
 // HandleGHWebHook responds to POST /gh_event, when it receives an event from GitHub.
 func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http.Request) {
-	buf, err := io.ReadAll(r.Body)
+	buf, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxWebhookBodyBytes))
 	if err != nil {
+		var maxBytesErr *http.MaxBytesError
+		if errors.As(err, &maxBytesErr) {
+			c.Logger.Error("webhook body too large", "limit", maxBytesErr.Limit)
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
 		c.Logger.Error("error reading body", "err", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	defer r.Body.Close()
 
-	receivedHash := strings.SplitN(r.Header.Get("X-Hub-Signature"), "=", 2)
-	if receivedHash[0] != "sha1" {
-		c.Logger.Error("invalid webhook hash signature: SHA1")
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	err = validateSignature(c.Opts.GitHubToken, receivedHash, buf)
+	err = validateSignature(c.Opts.GitHubToken, r.Header, buf)
 	if err != nil {
-		c.Logger.Error("invalid token", "err", err)
+		c.Logger.Error("invalid webhook signature", "err", err)
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -64,10 +68,11 @@ func (c *WorkflowMetricsExporter) HandleGHWebHook(w http.ResponseWriter, r *http
 	case "ping":
 		pingEvent := model.PingEventFromJSON(io.NopCloser(bytes.NewBuffer(buf)))
 		if pingEvent == nil {
-			c.Logger.Info("ping event", "hookID", pingEvent.GetHookID())
+			c.Logger.Error("unable to decode the ping event")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		c.Logger.Info("ping event", "hookID", pingEvent.GetHookID())
 		w.WriteHeader(http.StatusAccepted)
 		_, _ = w.Write([]byte(`{"status": "honk"}`))
 		return
@@ -162,18 +167,36 @@ func (c *WorkflowMetricsExporter) CollectWorkflowRunEvent(event *github.Workflow
 	c.PrometheusObserver.CountWorkflowRunStatus(org, repo, branch, status, conclusion, workflowName)
 }
 
-// validateSignature validate the incoming github event.
-func validateSignature(gitHubToken string, receivedHash []string, bodyBuffer []byte) error {
-	hash := hmac.New(sha1.New, []byte(gitHubToken))
-	if _, err := hash.Write(bodyBuffer); err != nil {
-		msg := fmt.Sprintf("Cannot compute the HMAC for request: %s\n", err)
-		return errors.New(msg)
+// validateSignature validates the HMAC signature of an incoming GitHub event.
+// X-Hub-Signature-256 is preferred, the legacy SHA-1 X-Hub-Signature is only used when it is absent.
+func validateSignature(gitHubToken string, headers http.Header, body []byte) error {
+	var (
+		algorithm string
+		newHash   func() hash.Hash
+		header    string
+	)
+	if value := headers.Get("X-Hub-Signature-256"); value != "" {
+		algorithm, newHash, header = "sha256", sha256.New, value
+	} else if value := headers.Get("X-Hub-Signature"); value != "" {
+		algorithm, newHash, header = "sha1", sha1.New, value
+	} else {
+		return errors.New("missing X-Hub-Signature-256 or X-Hub-Signature header")
 	}
 
-	expectedHash := hex.EncodeToString(hash.Sum(nil))
-	if receivedHash[1] != expectedHash {
-		msg := fmt.Sprintf("Expected Hash does not match the received hash: %s\n", expectedHash)
-		return errors.New(msg)
+	receivedAlgorithm, receivedHex, found := strings.Cut(header, "=")
+	if !found || receivedAlgorithm != algorithm {
+		return fmt.Errorf("malformed signature header, expected %s=<hex digest>", algorithm)
+	}
+
+	received, err := hex.DecodeString(receivedHex)
+	if err != nil {
+		return fmt.Errorf("signature is not a valid hex digest: %w", err)
+	}
+
+	mac := hmac.New(newHash, []byte(gitHubToken))
+	mac.Write(body)
+	if !hmac.Equal(received, mac.Sum(nil)) {
+		return errors.New("signature does not match the payload")
 	}
 
 	return nil

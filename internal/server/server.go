@@ -34,6 +34,7 @@ type Server struct {
 	serverIngress           *http.Server
 	workflowMetricsExporter *WorkflowMetricsExporter
 	billingExporter         *BillingMetricsExporter
+	billingCancel           context.CancelFunc
 	opts                    Opts
 }
 
@@ -45,11 +46,12 @@ func NewServer(logger *slog.Logger, opts Opts) *Server {
 	}
 
 	billingExporter := NewBillingMetricsExporter(logger, opts)
-	err := billingExporter.StartOrgBilling(context.TODO())
+	billingCtx, billingCancel := context.WithCancel(context.Background())
+	err := billingExporter.StartOrgBilling(billingCtx)
 	if err != nil {
 		logger.Info("not exporting org billing", "reason", err)
 	}
-	err = billingExporter.StartUserBilling(context.TODO())
+	err = billingExporter.StartUserBilling(billingCtx)
 	if err != nil {
 		logger.Info("not exporting user billing", "reason", err)
 	}
@@ -67,6 +69,7 @@ func NewServer(logger *slog.Logger, opts Opts) *Server {
 		serverIngress:           httpServerIngress,
 		workflowMetricsExporter: workflowExporter,
 		billingExporter:         billingExporter,
+		billingCancel:           billingCancel,
 		opts:                    opts,
 	}
 
@@ -104,6 +107,8 @@ func (s *Server) Serve(_ context.Context) error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.billingCancel()
+
 	err := s.serverMetrics.Shutdown(ctx)
 	if err != nil {
 		return err

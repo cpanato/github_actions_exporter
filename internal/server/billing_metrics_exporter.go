@@ -53,6 +53,7 @@ func (c *BillingMetricsExporter) StartOrgBilling(ctx context.Context) error {
 			case <-ticker.C:
 				c.collectOrgBilling(ctx)
 			case <-ctx.Done():
+				ticker.Stop()
 				c.Logger.Info("stopped polling for org billing metrics")
 				return
 			}
