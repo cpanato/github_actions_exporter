@@ -1,6 +1,6 @@
 # github-exporter
 
-![Version: 0.4.0](https://img.shields.io/badge/Version-0.4.0-informational?style=flat-square) ![AppVersion: 0.10.1](https://img.shields.io/badge/AppVersion-0.10.1-informational?style=flat-square)
+![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-informational?style=flat-square) ![AppVersion: 0.11.0](https://img.shields.io/badge/AppVersion-0.11.0-informational?style=flat-square)
 
 GitHub exporter
 
@@ -19,10 +19,10 @@ GitHub exporter
 | config.org | string | `""` |  |
 | config.pollSeconds | int | `30` |  |
 | deployment.affinity | object | `{}` |  |
-| deployment.image.digest | string | `"sha256:ae53f1f9e24de48f028054b122e5877597bd61e22f4bee25d4435a37a5b92c5d"` |  |
+| deployment.image.digest | string | `"sha256:10f6fae56fe67dc62d01cd1905316ad5ac956b3313d1b1fb534cd83996ac752e"` |  |
 | deployment.image.pullPolicy | string | `"IfNotPresent"` |  |
 | deployment.image.repository | string | `"ghcr.io/cpanato/github_actions_exporter"` |  |
-| deployment.image.tag | string | `"v0.10.1"` |  |
+| deployment.image.tag | string | `"v0.11.0"` |  |
 | deployment.nodeSelector | object | `{}` |  |
 | deployment.podAnnotations | object | `{}` |  |
 | deployment.podLabels | object | `{}` |  |
