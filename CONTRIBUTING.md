@@ -14,9 +14,9 @@ This project uses GitHub to manage reviews of pull requests.
 
 ## Pull Request Checklist
 
-* Start by forking the project, and then create a feature branch from the master branch for your feature.
+* Start by forking the project, and then create a feature branch from the main branch for your feature.
 
-* If needed, rebase to the current master branch before submitting your pull request. If it doesn't merge cleanly with master you may be asked to rebase your changes.
+* If needed, rebase to the current main branch before submitting your pull request. If it doesn't merge cleanly with main you may be asked to rebase your changes.
 
 * Commits should be as small as possible, while ensuring that each commit is correct independently (i.e., each commit should compile and pass tests).
 
