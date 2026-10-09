@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,7 +16,6 @@ import (
 	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/log"
 	"github.com/google/go-github/v66/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,7 +34,7 @@ func (readerThatErrors) Read(_ []byte) (n int, err error) {
 func Test_WorkflowMetricsExporter_HandleGHWebHook_RejectsInvalidSignature(t *testing.T) {
 	// Given
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr)),
+		Logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -56,7 +56,7 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -78,7 +78,7 @@ func Test_GHActionExporter_HandleGHWebHook_ValidatesValidSignature(t *testing.T)
 func Test_GHActionExporter_HandleGHWebHook_HandlesBodyReadError(t *testing.T) {
 	// Given
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 	}
 	req := httptest.NewRequest("POST", "/anything", readerThatErrors{})
 
@@ -93,7 +93,7 @@ func Test_GHActionExporter_HandleGHWebHook_HandlesBodyReadError(t *testing.T) {
 func Test_GHActionExporter_HandleGHWebHook_Ping(t *testing.T) {
 	// Given
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -113,7 +113,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobQueuedEvent(t *testing.T) 
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -169,7 +169,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventFirstStep(t
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -245,7 +245,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobInProgressEventSecondStep(
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -317,7 +317,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowJobInProgressEventWith
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -392,7 +392,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent(t *testing.
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -476,7 +476,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoStart
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -536,7 +536,7 @@ func Test_GHActionExporter_HandleGHWebHook_WorkflowJobCompletedEvent_WithNoCompl
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -595,7 +595,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunCompleted(t *testin
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},
@@ -661,7 +661,7 @@ func Test_WorkflowMetricsExporter_HandleGHWebHook_WorkflowRunEventOtherThanCompl
 	// Given
 	observer := NewTestPrometheusObserver(t)
 	subject := server.WorkflowMetricsExporter{
-		Logger: log.NewLogfmtLogger(log.NewSyncWriter(os.Stdout)),
+		Logger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
 		Opts: server.Opts{
 			GitHubToken: webhookSecret,
 		},

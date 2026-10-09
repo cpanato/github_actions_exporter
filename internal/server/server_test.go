@@ -3,20 +3,20 @@ package server_test
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/go-kit/log"
 	"github.com/google/go-github/v66/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
-	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	srv := server.NewServer(logger, server.Opts{
 		MetricsPath:          "/metrics",
 		ListenAddressMetrics: ":8000",
@@ -65,7 +65,7 @@ func Test_Server_MetricsRouteWithNoMetrics(t *testing.T) {
 }
 
 func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
-	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	srv := server.NewServer(logger, server.Opts{
 		MetricsPath:          "/metrics",
 		ListenAddressMetrics: ":8000",
