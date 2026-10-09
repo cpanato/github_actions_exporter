@@ -12,7 +12,10 @@
 
 **Other changes**
 
+- The webhook handler verifies the `X-Hub-Signature-256` signature (falling back to the legacy SHA-1 `X-Hub-Signature` only when it is absent), compares it in constant time and rejects malformed signature headers instead of panicking (#300). It no longer logs the expected signature on a mismatch, and bodies over 25 MB (GitHub's maximum) are rejected with `413`.
+- Fix the ping event handling and stop the billing pollers on shutdown (#300).
 - Build with Go 1.27.2 and update dependencies (`prometheus/client_golang` 1.25, `prometheus/common` 0.72, `go-github` v92).
+- Refresh the README: metrics and flags reference, webhook events, Docker image and example queries (#298, #299).
 
 ## 0.3.0 / 2022-04-20
 
