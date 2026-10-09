@@ -31,6 +31,22 @@ The metrics are built from the GitHub [billing usage report](https://docs.github
 
 When configuring for an organization, the Access token must belong to an administrator of the organization and the organization must be on the enhanced billing platform. When configuring for an user, the token must belong to that user.
 
+### Example queries
+
+Time a job waits for a runner (queued until started) per runner group, useful to compare how fast runner groups pick up jobs:
+
+```promql
+sum by (runner_group) (rate(workflow_job_duration_seconds_sum{state="queued"}[5m]))
+/
+sum by (runner_group) (rate(workflow_job_duration_seconds_count{state="queued"}[5m]))
+```
+
+95th percentile of the same:
+
+```promql
+histogram_quantile(0.95, sum by (le, runner_group) (rate(workflow_job_duration_seconds_bucket{state="queued"}[5m])))
+```
+
 
 ### Prerequisites
 
