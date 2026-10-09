@@ -117,6 +117,37 @@ Port `9101` serves the metrics and port `8065` receives the GitHub webhooks.
 
 A Helm chart is available in [charts/github-exporter](./charts/github-exporter).
 
+## Verifying the releases
+
+The container images and the release binaries are signed with [Cosign](https://github.com/sigstore/cosign) (keyless, through the GitHub Actions identity of the release workflow), so you can verify that they were built by this repository. Releases are also published with [SLSA](https://slsa.dev) provenance (`multiple.intoto.jsonl`).
+The commands below were tested with Cosign v3 (the `.sigstore.json` bundles of the binaries require it). Releases before v0.11.0 sign the binaries with separate `.sig` and `.pem` files instead.
+
+Verify a container image (replace the version with the one you use):
+
+```bash
+VERSION=v0.11.0
+
+cosign verify \
+  --certificate-identity "https://github.com/cpanato/github_actions_exporter/.github/workflows/release.yml@refs/tags/${VERSION}" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ghcr.io/cpanato/github_actions_exporter:${VERSION}
+```
+
+Verify a binary, downloaded together with its `.sigstore.json` bundle from the [release](https://github.com/cpanato/github_actions_exporter/releases):
+
+```bash
+VERSION=v0.11.0
+BINARY=github-actions-exporter_0.11.0_linux_amd64
+
+cosign verify-blob \
+  --bundle ${BINARY}.sigstore.json \
+  --certificate-identity "https://github.com/cpanato/github_actions_exporter/.github/workflows/release.yml@refs/tags/${VERSION}" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ${BINARY}
+```
+
+The same works for `checksums.txt` and its `checksums.txt.sigstore.json`.
+
 ## Testing
 
 ### Running unit tests
