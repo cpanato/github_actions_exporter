@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a new metric or improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What do you want to achieve?
+      description: Describe the use case, e.g. the question you want to answer with the metrics.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: The metric, flag or behaviour you would like, and the GitHub API or webhook event it could come from.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would be willing to open a pull request for this
