@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -128,6 +131,38 @@ func Test_BillingMetricsExporter_collectOrgBilling_DropsStaleHostTypes(t *testin
 	exporter.collectOrgBilling(context.Background())
 	assert.Equal(t, 1, testutil.CollectAndCount(totalMinutesUsedByHostTypeActions))
 	assert.InDelta(t, 5, testutil.ToFloat64(totalMinutesUsedByHostTypeActions.WithLabelValues(org, "", "UBUNTU")), 1e-9)
+}
+
+func Test_BillingMetricsExporter_StartOrgBilling_StopsOnContextCancel(t *testing.T) {
+	var logs syncBuffer
+	exporter := newTestBillingExporter(t, func(http.ResponseWriter, *http.Request) {})
+	exporter.Logger = slog.New(slog.NewTextHandler(&logs, nil))
+	exporter.Opts = Opts{GitHubOrg: "test-org", GitHubAPIToken: "token", BillingAPIPollSeconds: 3600}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	require.NoError(t, exporter.StartOrgBilling(ctx))
+	cancel()
+
+	assert.Eventually(t, func() bool {
+		return strings.Contains(logs.String(), "stopped polling for org billing metrics")
+	}, 5*time.Second, 10*time.Millisecond)
+}
+
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }
 
 func Test_BillingMetricsExporter_collectOrgBilling_APIErrorKeepsMetrics(t *testing.T) {
