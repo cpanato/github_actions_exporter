@@ -22,8 +22,14 @@ The webhook will call `/gh_event` path on your endpoint by default. You can chan
 
 Also it collects the Action Billing metrics, for that you will need to setup a GitHub API Access Token
 
-When configuring for an organization Access tokens must have the `repo` or `admin:org` scope.
-When configuring for an user Access tokens must have the `user` scope.
+The metrics are built from the GitHub [billing usage report](https://docs.github.com/rest/billing/usage) of the current month (enhanced billing platform), because the legacy Actions billing API was retired by GitHub:
+
+- `actions_total_minutes_used_minutes`: all Actions minutes used.
+- `actions_total_paid_minutes`: minutes that were charged.
+- `actions_included_minutes`: minutes covered by the included quota or discounts (total minus paid). It is no longer the plan allowance, which the new API does not report.
+- `actions_total_minutes_used_by_host_minutes`: minutes per runner type. The `host_type` label is `UBUNTU`, `WINDOWS` or `MACOS` for the standard runners, and the SKU (e.g. `actions_linux_4-core`) for larger runners.
+
+When configuring for an organization, the Access token must belong to an administrator of the organization and the organization must be on the enhanced billing platform. When configuring for an user, the token must belong to that user.
 
 
 ### Prerequisites

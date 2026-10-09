@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,7 +97,7 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 	jobName := "Test"
 
 	event := github.WorkflowJobEvent{
-		Action: github.String("completed"),
+		Action: new("completed"),
 		Repo: &github.Repository{
 			Name: &repo,
 			Owner: &github.User{
@@ -106,8 +106,8 @@ func Test_Server_MetricsRouteAfterWorkflowJob(t *testing.T) {
 		},
 		WorkflowJob: &github.WorkflowJob{
 			HeadBranch:      &branch,
-			Status:          github.String("completed"),
-			Conclusion:      github.String("success"),
+			Status:          new("completed"),
+			Conclusion:      new("success"),
 			StartedAt:       &github.Timestamp{Time: jobStartedAt},
 			CompletedAt:     &github.Timestamp{Time: completedAt},
 			RunnerGroupName: &runnerGroupName,
