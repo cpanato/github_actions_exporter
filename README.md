@@ -42,6 +42,8 @@ Webhook metrics:
 | `workflow_execution_time_seconds` | histogram | `org`, `repo`, `branch`, `workflow_name`, `conclusion` | Time that a workflow took to run. |
 | `workflow_status_count` | counter | `org`, `repo`, `branch`, `status`, `conclusion`, `workflow_name` | Count of the occurrences of different workflow states. |
 
+Each branch adds its own series to these metrics, and the exporter keeps them until it restarts. With many short-lived branches (pull requests, merge queue refs) this can add up to a lot of series. Use `--metrics.omit-branch-label` to drop the `branch` label from all five metrics, so every branch of a workflow counts towards the same series.
+
 ### Example queries
 
 Time a job waits for a runner (queued until started) per runner group, useful to compare how fast runner groups pick up jobs:
@@ -71,6 +73,7 @@ histogram_quantile(0.95, sum by (le, runner_group) (rate(workflow_job_duration_s
 | `--gh.github-org` | `GITHUB_ORG` | | GitHub organization to collect the billing metrics for. |
 | `--gh.github-user` | | | GitHub user to collect the billing metrics for. |
 | `--gh.billing-poll-seconds` | `BILLING_POLL_SECONDS` | `5` | Frequency at which to poll the billing API. |
+| `--metrics.omit-branch-label` | `GITHUB_METRICS_OMIT_BRANCH` | `false` | Omit the `branch` label from the webhook metrics. |
 | `--log.level` | | `info` | Only log messages with the given severity or above (`debug`, `info`, `warn`, `error`). |
 | `--log.format` | | `logfmt` | Output format of log messages (`logfmt`, `json`). |
 
