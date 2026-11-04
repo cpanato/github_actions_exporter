@@ -26,6 +26,8 @@ type Opts struct {
 	GitHubOrg             string
 	GitHubUser            string
 	BillingAPIPollSeconds int
+	// OmitBranchLabel registers the workflow metrics without the branch label.
+	OmitBranchLabel bool
 }
 
 type Server struct {

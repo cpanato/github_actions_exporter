@@ -17,6 +17,7 @@ import (
 
 	"github.com/cpanato/github_actions_exporter/internal/server"
 	"github.com/google/go-github/v92/github"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -746,6 +747,68 @@ type workflowRunObservation struct {
 
 type workflowRunStatusCount struct {
 	org, repo, branch, status, conclusion, workflowName string
+}
+
+func Test_PrometheusObserver_BranchLabel(t *testing.T) {
+	tests := []struct {
+		name       string
+		omitBranch bool
+		wantSeries int
+	}{
+		{name: "with branch label", omitBranch: false, wantSeries: 2},
+		{name: "without branch label", omitBranch: true, wantSeries: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Given
+			reg := prometheus.NewRegistry()
+			observer := server.NewPrometheusObserver(reg, tt.omitBranch)
+
+			// When
+			for _, branch := range []string{"main", "feature"} {
+				observer.ObserveWorkflowJobDuration("org", "repo", branch, "queued", "default", "CI", "test", 1)
+				observer.CountWorkflowJobStatus("org", "repo", branch, "completed", "success", "default", "CI", "test")
+				observer.CountWorkflowJobDuration("org", "repo", branch, "completed", "success", "default", "CI", "test", 1)
+				observer.ObserveWorkflowRunDuration("org", "repo", branch, "CI", "success", 1)
+				observer.CountWorkflowRunStatus("org", "repo", branch, "completed", "success", "CI")
+			}
+
+			// Then
+			families, err := reg.Gather()
+			require.NoError(t, err)
+			require.Len(t, families, 5)
+			for _, family := range families {
+				require.Len(t, family.GetMetric(), tt.wantSeries, family.GetName())
+				for _, metric := range family.GetMetric() {
+					hasBranch := false
+					for _, label := range metric.GetLabel() {
+						if label.GetName() == "branch" {
+							hasBranch = true
+						}
+					}
+					assert.Equal(t, !tt.omitBranch, hasBranch, family.GetName())
+				}
+			}
+		})
+	}
+}
+
+func Test_NewPrometheusObserver_ReusesRegisteredMetrics(t *testing.T) {
+	// Given
+	reg := prometheus.NewRegistry()
+	first := server.NewPrometheusObserver(reg, false)
+
+	// When
+	second := server.NewPrometheusObserver(reg, false)
+	first.CountWorkflowRunStatus("org", "repo", "main", "completed", "success", "CI")
+	second.CountWorkflowRunStatus("org", "repo", "main", "completed", "success", "CI")
+
+	// Then
+	families, err := reg.Gather()
+	require.NoError(t, err)
+	require.Len(t, families, 1)
+	assert.InDelta(t, 2, families[0].GetMetric()[0].GetCounter().GetValue(), 1e-9)
 }
 
 var _ server.WorkflowObserver = (*TestPrometheusObserver)(nil)
