@@ -26,6 +26,7 @@ var (
 	gitHubOrg                   = kingpin.Flag("gh.github-org", "GitHub Organization.").Envar("GITHUB_ORG").Default("").String()
 	gitHubUser                  = kingpin.Flag("gh.github-user", "GitHub User.").Default("").String()
 	gitHubBillingPollingSeconds = kingpin.Flag("gh.billing-poll-seconds", "Frequency at which to poll billing API.").Envar("BILLING_POLL_SECONDS").Default("5").Int()
+	omitBranchLabel             = kingpin.Flag("metrics.omit-branch-label", "Omit the branch label from the workflow metrics, so all branches of a workflow share the same series.").Envar("GITHUB_METRICS_OMIT_BRANCH").Default("false").Bool()
 )
 
 func init() {
@@ -61,6 +62,7 @@ func main() {
 		GitHubUser:            *gitHubUser,
 		GitHubOrg:             *gitHubOrg,
 		BillingAPIPollSeconds: *gitHubBillingPollingSeconds,
+		OmitBranchLabel:       *omitBranchLabel,
 	})
 	go func() {
 		err := srv.Serve(context.Background())

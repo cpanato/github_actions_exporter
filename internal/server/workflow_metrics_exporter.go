@@ -17,6 +17,7 @@ import (
 
 	"github.com/cpanato/github_actions_exporter/model"
 	"github.com/google/go-github/v92/github"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // WorkflowMetricsExporter struct to hold some information
@@ -31,7 +32,7 @@ func NewWorkflowMetricsExporter(logger *slog.Logger, opts Opts) *WorkflowMetrics
 	return &WorkflowMetricsExporter{
 		Logger:             logger,
 		Opts:               opts,
-		PrometheusObserver: &PrometheusObserver{},
+		PrometheusObserver: NewPrometheusObserver(prometheus.DefaultRegisterer, opts.OmitBranchLabel),
 	}
 }
 
